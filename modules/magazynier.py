@@ -5422,7 +5422,16 @@ def import_page():
     
     html = f'''
     <div class="hdr"><h1><span class=material-symbols-outlined>download</span> IMPORT</h1></div>
-    
+
+    <a href="/magazyn/import-multi" class="card" style="display:flex;align-items:center;gap:14px;padding:16px 18px;margin-bottom:16px;background:linear-gradient(135deg,rgba(143,245,255,0.08),rgba(190,238,0,0.04));border:1px solid rgba(143,245,255,0.25);border-radius:12px;text-decoration:none;color:inherit;transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:1.8rem;color:#8ff5ff">view_module</span>
+        <div style="flex:1">
+            <div style="font-weight:700;color:#8ff5ff;font-size:0.95rem">Import multi-paleta (CRM Online)</div>
+            <div style="font-size:0.78rem;color:#94a3b8;margin-top:2px">Excel z wieloma paletami w jednym pliku (kolumna NR PALETY auto-tworzy palety)</div>
+        </div>
+        <span class="material-symbols-outlined" style="color:#8ff5ff">arrow_forward</span>
+    </a>
+
     <form action="/magazyn/import/preview" method="POST" enctype="multipart/form-data" id="importForm">
         
         <!-- WYBÓR PALETY -->
@@ -6130,9 +6139,77 @@ def import_final():
     '''
     return render(html)
 
+# ─── MULTI-PALETA IMPORT (kolumna "NR PALETY" w Excel) ───────────────────
+# Pomocnicze stale dla detekcji kolumny "Nr Palety" w roznych jezykach/wariantach.
+# Sprawdzane case-insensitive po normalizacji (spacja/_/- usuwane, do uppercase).
+_PALETA_COL_KEYWORDS = (
+    'NRPALETY', 'NRPAL', 'NOPALETY', 'NUMERPALETY',
+    'PALETA', 'PALETANR', 'PALETANAZWA',
+    'PALLET', 'PALLETNO', 'PALLETNR', 'PALLETID', 'PALLETNAME',
+    'BATCH', 'BATCHNO', 'LOT', 'LOTNO',
+)
+
+
+def _normalize_header(h):
+    """Normalizuje naglowek do porownania: uppercase + bez spacji/_/-/."""
+    if not h:
+        return ''
+    return str(h).upper().replace(' ', '').replace('_', '').replace('-', '').replace('.', '')
+
+
+def _find_paleta_column(headers):
+    """Znajduje index kolumny 'NR PALETY' w naglowkach. Zwraca -1 jesli brak.
+
+    Args:
+        headers: list[str] - naglowki Excel/CSV (uppercase lub mixed case)
+    Returns:
+        int - index kolumny, lub -1 jesli nie znaleziono
+    """
+    for i, h in enumerate(headers):
+        norm = _normalize_header(h)
+        # Exact match z listy keywordow
+        if norm in _PALETA_COL_KEYWORDS:
+            return i
+        # Substring match: "NR PALETY 2024" -> NRPALETY2024 zawiera NRPALETY
+        for kw in _PALETA_COL_KEYWORDS:
+            if kw in norm and len(norm) < len(kw) + 8:  # nie matchuj zbyt szerokiego naglowka
+                return i
+    return -1
+
+
+def _find_or_create_paleta(conn, paleta_name, default_dostawca=''):
+    """Znajduje paletę po nazwie (case-insensitive) lub tworzy nową.
+
+    Args:
+        conn: sqlite3 connection (auto-commit pozostawiamy callerowi)
+        paleta_name: str - nazwa palety z kolumny NR PALETY (np "PAL-001", "1")
+        default_dostawca: str - dostawca przypisany jesli paleta nowa
+    Returns:
+        int - paleta_id (istniejacy lub nowy)
+    """
+    name = str(paleta_name or '').strip()
+    if not name:
+        return None
+    # Szukaj istniejacej (LIKE bo Excel czasem rzuca .0 do liczb)
+    row = conn.execute(
+        "SELECT id FROM palety WHERE TRIM(LOWER(nazwa)) = LOWER(?)",
+        (name,)
+    ).fetchone()
+    if row:
+        return row[0]
+    # Brak - utworz nowa
+    cur = conn.execute(
+        "INSERT INTO palety (nazwa, dostawca, ilosc_produktow) VALUES (?, ?, 0)",
+        (name, default_dostawca or '')
+    )
+    return cur.lastrowid
+
+
 @magazynier_bp.route('/import/upload', methods=['POST'])
 def import_upload():
-    """Import pliku Excel/CSV"""
+    """Import pliku Excel/CSV. Obsluguje opcjonalna kolumne 'NR PALETY' -
+    jesli wykryta -> auto-tworzy palety per unique wartosc, ignoruje paleta_id
+    z formularza. Jesli brak -> uzywa paleta_id z formularza (legacy)."""
     if 'file' not in request.files:
         return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import" class="btn btn-p">← Powrót</a>')
 
@@ -6376,6 +6453,414 @@ def import_upload():
     <a href="/magazyn" class="back">← Powrót</a>
     '''
     return render(html)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# MULTI-PALETA IMPORT (CRM Online) - osobny endpoint, nie tyka /import/upload
+# ════════════════════════════════════════════════════════════════════════════
+
+@magazynier_bp.route('/import-multi', methods=['GET'])
+def import_multi_page():
+    """Formularz importu Excela z wieloma paletami w jednym pliku (CRM Online).
+
+    Format: wiersz nagłówkowy zawiera kolumny "NR PALETY", "NAZWA", "ASIN" (lub
+    "EAN/KOD"), opcjonalnie "PALETA" (URL dostawcy), "Ilość", "STAN", "STATUS",
+    "Zakup 1szt netto", "Cena Allegro", "INFO". Nagłówki mogą się powtarzać w
+    środku pliku (separator między paletami) — system to wykrywa i pomija.
+    """
+    html = '''
+    <div class="hdr"><h1><span class="material-symbols-outlined">view_module</span> IMPORT MULTI-PALETA</h1>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">Excel z wieloma paletami (CRM Online / własny format z kolumną NR PALETY)</div>
+    </div>
+
+    <form action="/magazyn/import-multi/upload" method="POST" enctype="multipart/form-data" id="multiImportForm">
+        <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('multiFile').click()">
+            <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:3rem">cloud_upload</span></div>
+            <div style="font-weight:600;font-size:1.05rem">Wybierz plik Excel (.xlsx)</div>
+            <div style="font-size:0.8rem;color:#64748b;margin-top:5px">Auto-detekcja kolumn + auto-utworzenie palet</div>
+            <input type="file" id="multiFile" name="file" style="display:none" accept=".xlsx" onchange="document.getElementById('multiSubmitBtn').click()">
+        </div>
+        <button type="submit" id="multiSubmitBtn" style="display:none"></button>
+    </form>
+
+    <div class="card" style="padding:18px;margin-top:18px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15)">
+        <div style="font-weight:700;color:#8ff5ff;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">info</span> Jak to działa</div>
+        <ul style="font-size:0.82rem;color:#94a3b8;line-height:1.7;padding-left:20px;margin:0">
+            <li>Wykrywa kolumnę <code>NR PALETY</code> (lub <code>PALLET</code>, <code>BATCH</code>, <code>LOT</code>)</li>
+            <li>Każda unique wartość = osobna paleta (auto-utworzona jeśli nie istnieje)</li>
+            <li>Dostawca: z kolumny <code>PALETA</code> (URL) → wyciągana domena (miglo, jobalots itp.)</li>
+            <li>Kod produktu: <code>ASIN</code> (priorytet) lub <code>EAN</code>/<code>KOD</code></li>
+            <li>Cena netto: <code>Zakup 1szt netto</code>; brutto = netto × 1.23 (auto-kalkulacja)</li>
+            <li>Stan: <code>STAN</code> (Nowy/Uszkodzony/Powystawowy)</li>
+            <li>Status:<br>
+                &nbsp;&nbsp;• <code>Sprzedane</code> → <span style="color:#22c55e">sprzedany</span> (zachowuje historię)<br>
+                &nbsp;&nbsp;• <code>Wyjebane</code> → <span style="color:#ef4444">uszkodzony</span><br>
+                &nbsp;&nbsp;• inne / <code>Dostępne</code> → <span style="color:#8ff5ff">magazyn</span></li>
+            <li>Powtórzone nagłówki w środku pliku (po każdej palecie) — auto-pomijane</li>
+        </ul>
+    </div>
+
+    <a href="/magazyn/import" class="back" style="margin-top:18px">← Powrót do importu standardowego</a>
+    '''
+    return render(html)
+
+
+def _parse_paleta_url_to_dostawca(url):
+    """Wyciagnij nazwe dostawcy z URL palety. 'https://b2b.miglo.pl/...' -> 'miglo'."""
+    if not url:
+        return ''
+    import re
+    m = re.search(r'https?://(?:www\.|b2b\.|sklep\.)?([\w-]+)\.', str(url))
+    if m:
+        return m.group(1).lower()
+    return ''
+
+
+def _map_excel_status_to_system(excel_status):
+    """Maciek's STATUS column -> system status.
+
+    Sprzedane    -> sprzedany (zachowuje historie sprzedazy)
+    Wyjebane     -> uszkodzony (notatka 'INFO' leci do opis_ai)
+    Dostepne/-/' -> magazyn
+    """
+    if not excel_status:
+        return 'magazyn'
+    s = str(excel_status).strip().lower()
+    if 'sprzedan' in s:
+        return 'sprzedany'
+    if 'wyjeban' in s or 'wyrzucon' in s:
+        return 'uszkodzony'
+    return 'magazyn'
+
+
+def _map_excel_stan_to_system(excel_stan):
+    """Maciek's STAN column -> produkty.stan. Default 'Nowy' jak puste."""
+    if not excel_stan:
+        return 'Nowy'
+    s = str(excel_stan).strip().capitalize()
+    # Normalizacja do dozwolonych wartosci
+    if 'usz' in s.lower() or 'damag' in s.lower():
+        return 'Uszkodzony'
+    if 'powystaw' in s.lower() or 'exhibit' in s.lower() or 'display' in s.lower():
+        return 'Powystawowy'
+    if 'uzyw' in s.lower() or 'używan' in s.lower() or 'used' in s.lower():
+        return 'Używany'
+    if 'odno' in s.lower() or 'refurb' in s.lower():
+        return 'Odnowiony'
+    return 'Nowy'
+
+
+@magazynier_bp.route('/import-multi/upload', methods=['POST'])
+def import_multi_upload():
+    """Parser multi-paleta z auto-create palet."""
+    if 'file' not in request.files:
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    file = request.files['file']
+    if not file.filename or not file.filename.lower().endswith('.xlsx'):
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Tylko pliki .xlsx są obsługiwane</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    import tempfile
+    import os as _os
+    import re
+
+    tmp_path = _os.path.join(tempfile.gettempdir(), f'multi_import_{_os.getpid()}.xlsx')
+    file.save(tmp_path)
+
+    try:
+        import openpyxl
+    except ImportError:
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Brak biblioteki openpyxl. Zainstaluj: pip install openpyxl</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    try:
+        wb = openpyxl.load_workbook(tmp_path, data_only=True)
+        # Wybierz sheet: priorytet "magazyn"/"magazyn", fallback first
+        target_sheet = None
+        for sn in wb.sheetnames:
+            if 'magazyn' in sn.lower() or 'inventory' in sn.lower():
+                target_sheet = sn
+                break
+        if not target_sheet:
+            target_sheet = wb.sheetnames[0]
+        ws = wb[target_sheet]
+
+        # Znajdz wiersz naglowkowy: zawiera "NR PALETY" / "PALETA" + "NAZWA" + "ASIN"/"EAN"/"KOD"
+        header_row = -1
+        for row_idx in range(1, min(15, (ws.max_row or 0) + 1)):
+            row_vals = [str(ws.cell(row=row_idx, column=c).value or '').upper().strip()
+                        for c in range(1, min((ws.max_column or 0) + 1, 30))]
+            joined = '|'.join(row_vals)
+            has_paleta = 'NR PALETY' in joined or 'PALLET' in joined or 'BATCH' in joined
+            has_nazwa = 'NAZWA' in joined or 'NAME' in joined or 'PRODUKT' in joined
+            has_code = 'ASIN' in joined or 'EAN' in joined or 'KOD' in joined or 'SKU' in joined
+            if has_paleta and has_nazwa and has_code:
+                header_row = row_idx
+                break
+
+        if header_row < 0:
+            wb.close()
+            return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie znalazłem wiersza nagłówkowego z kolumnami NR PALETY + NAZWA + ASIN/EAN/KOD. Sprawdź czy Excel ma poprawny format.</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+        # Mapuj indexy kolumn (case-insensitive)
+        headers = [str(ws.cell(row=header_row, column=c).value or '').upper().strip()
+                   for c in range(1, (ws.max_column or 0) + 1)]
+
+        def find_col(*keywords):
+            for i, h in enumerate(headers):
+                hn = h.replace(' ', '').replace('_', '')
+                for kw in keywords:
+                    if kw.replace(' ', '') in hn:
+                        return i
+            return -1
+
+        col_nr_paleta = find_col('NRPALETY', 'PALLETNO', 'PALLETNR', 'BATCHNO')
+        col_paleta_url = find_col('PALETA')  # PALETA = URL u Maćka, NR PALETY juz osobno
+        if col_paleta_url == col_nr_paleta:  # Same kolumna - szukaj innej
+            for i, h in enumerate(headers):
+                if i != col_nr_paleta and ('PALETA' in h.replace(' ', '') or 'URL' in h or 'LINK' in h or 'ZRODLO' in h):
+                    col_paleta_url = i
+                    break
+        col_asin = find_col('ASIN')
+        col_ean = find_col('EAN', 'BARCODE')
+        col_kod = find_col('KOD', 'SKU', 'CODE')  # numer porzadkowy u Maćka
+        col_nazwa = find_col('NAZWA', 'NAME', 'PRODUKT', 'TYTUL', 'TITLE')
+        col_ilosc = find_col('ILOSC', 'ILOŚĆ', 'QTY', 'QUANTITY', 'SZTUK')
+        col_stan = find_col('STAN', 'CONDITION', 'STATE')
+        col_status = find_col('STATUS')
+        col_cena_netto = find_col('ZAKUP1SZTNETTO', 'ZAKUP1SZT', 'CENANETTO1SZT', 'KOSZTNETTO1SZT')
+        col_cena_allegro = find_col('CENAALLEGRO', 'CENAA', 'ALLEGRO')
+        col_info = find_col('INFO', 'NOTATKI', 'NOTES', 'UWAGI', 'COMMENT')
+
+        if col_nr_paleta < 0 or col_nazwa < 0:
+            wb.close()
+            return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Brak wymaganych kolumn NR PALETY i/lub NAZWA</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+        # Iter rows
+        conn = get_db()
+        palety_cache = {}     # nazwa_palety -> id
+        palety_stats = {}     # id -> {nazwa, dostawca, count, sprzedane, magazyn, uszkodzone}
+        added_total = 0
+        skipped_no_data = 0
+        skipped_header_repeat = 0
+        errors = []
+
+        for row_idx, row in enumerate(ws.iter_rows(min_row=header_row + 1, values_only=True), start=header_row + 1):
+            try:
+                if not row:
+                    continue
+                # Skip pusty
+                if all(v is None or str(v).strip() == '' for v in row):
+                    skipped_no_data += 1
+                    continue
+
+                # Skip header repeat (komorka 1 zaczyna sie od 'KOD' lub NRPalety = 'NR PALETY' literal)
+                first_cell = str(row[0] or '').strip().upper()
+                if first_cell == 'KOD' or first_cell == 'NR PALETY':
+                    skipped_header_repeat += 1
+                    continue
+
+                # NR PALETY - decyduje o palecie
+                nr_paleta_raw = row[col_nr_paleta] if col_nr_paleta < len(row) else None
+                nr_paleta = str(nr_paleta_raw or '').strip()
+                if nr_paleta.endswith('.0'):
+                    nr_paleta = nr_paleta[:-2]
+                if not nr_paleta or nr_paleta.upper() in ('NONE', 'NAN'):
+                    skipped_no_data += 1
+                    continue
+
+                # ASIN / EAN
+                asin = ''
+                if col_asin >= 0 and col_asin < len(row):
+                    asin = str(row[col_asin] or '').strip()
+                    if asin.endswith('.0'):
+                        asin = asin[:-2]
+                ean = ''
+                if col_ean >= 0 and col_ean < len(row):
+                    ean = str(row[col_ean] or '').strip()
+                    if ean.endswith('.0'):
+                        ean = ean[:-2]
+                # ASIN ma priorytet jako kod (Maciek to format)
+                if not ean and asin:
+                    ean = asin
+                # Jesli wciaz brak - pomin
+                if not ean and not asin:
+                    skipped_no_data += 1
+                    continue
+
+                # Nazwa
+                nazwa = str(row[col_nazwa] or '').strip() if col_nazwa < len(row) else ''
+                if not nazwa or nazwa.upper() in ('NONE', 'NAN'):
+                    nazwa = ean or asin or f'Produkt #{row_idx}'
+
+                # Ilosc
+                ilosc = 1
+                if col_ilosc >= 0 and col_ilosc < len(row) and row[col_ilosc]:
+                    try:
+                        ilosc = int(float(str(row[col_ilosc]).replace(',', '.')))
+                    except Exception:
+                        ilosc = 1
+
+                # Stan + status
+                stan_excel = row[col_stan] if col_stan >= 0 and col_stan < len(row) else None
+                stan = _map_excel_stan_to_system(stan_excel)
+                status_excel = row[col_status] if col_status >= 0 and col_status < len(row) else None
+                status = _map_excel_status_to_system(status_excel)
+
+                # Cena netto (Zakup 1szt netto)
+                cena_netto = 0
+                if col_cena_netto >= 0 and col_cena_netto < len(row) and row[col_cena_netto]:
+                    try:
+                        cena_netto = float(str(row[col_cena_netto]).replace(',', '.').replace(' ', ''))
+                    except Exception:
+                        cena_netto = 0
+                cena_brutto = round(cena_netto * 1.23, 2) if cena_netto > 0 else 0
+
+                # Cena Allegro
+                cena_allegro = 0
+                if col_cena_allegro >= 0 and col_cena_allegro < len(row) and row[col_cena_allegro]:
+                    try:
+                        cena_allegro = float(str(row[col_cena_allegro]).replace(',', '.').replace(' ', ''))
+                    except Exception:
+                        cena_allegro = 0
+
+                # INFO -> opis_ai
+                info_note = ''
+                if col_info >= 0 and col_info < len(row) and row[col_info]:
+                    info_note = str(row[col_info]).strip()
+
+                # Get / create paleta
+                if nr_paleta not in palety_cache:
+                    paleta_url = ''
+                    if col_paleta_url >= 0 and col_paleta_url < len(row) and row[col_paleta_url]:
+                        paleta_url = str(row[col_paleta_url]).strip()
+                    dostawca = _parse_paleta_url_to_dostawca(paleta_url)
+                    new_paleta_id = _find_or_create_paleta(conn, nr_paleta, dostawca)
+                    palety_cache[nr_paleta] = new_paleta_id
+                    palety_stats[new_paleta_id] = {
+                        'nazwa': nr_paleta,
+                        'dostawca': dostawca,
+                        'count': 0,
+                        'sprzedane': 0,
+                        'magazyn': 0,
+                        'uszkodzone': 0,
+                    }
+
+                target_paleta_id = palety_cache[nr_paleta]
+
+                # INSERT
+                conn.execute(
+                    """INSERT INTO produkty
+                       (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
+                        dostawca, paleta_id, paleta, stan, status, opis_ai)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
+                     palety_stats[target_paleta_id]['dostawca'],
+                     target_paleta_id, nr_paleta, stan, status, info_note)
+                )
+                added_total += 1
+                palety_stats[target_paleta_id]['count'] += 1
+                if status == 'sprzedany':
+                    palety_stats[target_paleta_id]['sprzedane'] += 1
+                elif status == 'uszkodzony':
+                    palety_stats[target_paleta_id]['uszkodzone'] += 1
+                else:
+                    palety_stats[target_paleta_id]['magazyn'] += 1
+
+            except Exception as row_err:
+                errors.append(f'Wiersz {row_idx}: {str(row_err)[:120]}')
+
+        # UPDATE palety.ilosc_produktow per paleta
+        for pid, stats in palety_stats.items():
+            try:
+                conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?',
+                             (stats['count'], pid))
+            except Exception as e:
+                errors.append(f'Update palety #{pid}: {str(e)[:80]}')
+
+        conn.commit()
+        wb.close()
+    except Exception as e:
+        try:
+            _os.remove(tmp_path)
+        except Exception:
+            pass
+        return render(f'<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">{str(e)[:300]}</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+    finally:
+        try:
+            _os.remove(tmp_path)
+        except Exception:
+            pass
+
+    # Render podsumowania
+    palety_rows = ''
+    total_sold = 0
+    total_mag = 0
+    total_dmg = 0
+    for pid, stats in palety_stats.items():
+        total_sold += stats['sprzedane']
+        total_mag += stats['magazyn']
+        total_dmg += stats['uszkodzone']
+        dost = stats['dostawca'] or '—'
+        palety_rows += (
+            f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+            f'<td style="padding:10px 12px"><a href="/palety/{pid}" style="color:#8ff5ff;font-weight:600;text-decoration:none">{stats["nazwa"]}</a></td>'
+            f'<td style="padding:10px 12px;color:#94a3b8">{dost}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#beee00;font-weight:700">{stats["count"]}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#22c55e">{stats["sprzedane"]}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#8ff5ff">{stats["magazyn"]}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#ef4444">{stats["uszkodzone"]}</td>'
+            f'</tr>'
+        )
+
+    n_palet = len(palety_stats)
+    err_block = ''
+    if errors:
+        err_lines = '<br>'.join(e for e in errors[:15])
+        err_block = (
+            f'<div class="alert alert-warn" style="margin-top:14px">'
+            f'<b>Błędy ({len(errors)}):</b><br>{err_lines}'
+            + (f'<br>... +{len(errors)-15} kolejnych' if len(errors) > 15 else '')
+            + '</div>'
+        )
+
+    html = f'''
+    <div class="hdr"><h1><span class="material-symbols-outlined">check_circle</span> IMPORT MULTI-PALETA ZAKOŃCZONY</h1></div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#8ff5ff">{n_palet}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">palety utworzone</div></div>
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#beee00">{added_total}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">produktów</div></div>
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#22c55e">{total_sold}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">sprzedanych</div></div>
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#8ff5ff">{total_mag}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">w magazynie</div></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+            <thead><tr style="background:rgba(143,245,255,0.06)">
+                <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Paleta</th>
+                <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Dostawca</th>
+                <th style="padding:10px 12px;text-align:center;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Razem</th>
+                <th style="padding:10px 12px;text-align:center;color:#22c55e;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Sprzedane</th>
+                <th style="padding:10px 12px;text-align:center;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Magazyn</th>
+                <th style="padding:10px 12px;text-align:center;color:#ef4444;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Uszkodzone</th>
+            </tr></thead>
+            <tbody>{palety_rows}</tbody>
+        </table>
+    </div>
+
+    <div style="margin-top:12px;font-size:0.78rem;color:#64748b">
+        Pominięto {skipped_no_data} pustych/niepełnych wierszy, {skipped_header_repeat} powtórzonych nagłówków.
+    </div>
+
+    {err_block}
+
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <a href="/magazyn/import-multi" class="btn btn-p"><span class="material-symbols-outlined">download</span> Importuj kolejny plik</a>
+        <a href="/magazyn/palety" class="btn btn-2"><span class="material-symbols-outlined">view_module</span> Zobacz palety</a>
+        <a href="/magazyn" class="back">← Magazyn</a>
+    </div>
+    '''
+    return render(html)
+
 
 @magazynier_bp.route('/dodaj')
 def dodaj():
