@@ -5296,6 +5296,74 @@ def narzedzia_fix_currency():
 # UZUPEŁNIJ ZDJECIA AMAZON dla produktów z ASIN ale bez zdjecie_url
 # ════════════════════════════════════════════════════════════════════════
 
+@app.route('/narzedzia/scal-duplikaty-magazyn', methods=['POST'])
+@require_admin
+def narzedzia_scal_duplikaty_magazyn():
+    """Scala duplikaty produktow w magazynie po (paleta_id, nazwa).
+
+    Kontekst: Maciek importowal Excel multi-paleta WIELOKROTNIE (przed split na
+    aktualny + historyczny + obie wersje wgrywaly osobne rekordy). Na /do-wystawienia
+    widzi ten sam produkt 2-3 razy z różnymi ilościami.
+
+    Logika:
+    1. Grupuj produkty po (paleta_id, nazwa[:60])
+    2. Dla każdej grupy z >1 rekordami:
+       - Zachowaj NAJSTARSZY (najmniejszy id) - ma referencje w sprzedaze/oferty
+       - Sumuj ilosc z wszystkich aktywnych (status NIE IN sprzedany/uszkodzony)
+       - Kasuj resztę (osierocone)
+    3. Status sprzedany/uszkodzony zostają osobno (historia sprzedaży)
+
+    Returns: {ok, merged_groups, deleted_rows, msg}
+    """
+    _validate_csrf_or_abort()
+    from modules.database import get_db
+    conn = get_db()
+    try:
+        # Znajdz grupy duplikatów (paleta_id + nazwa[:60], tylko aktywne magazynowe)
+        groups = conn.execute("""
+            SELECT paleta_id, substr(nazwa, 1, 60) as nazwa_klucz,
+                   COUNT(*) as cnt, GROUP_CONCAT(id) as ids,
+                   SUM(ilosc) as suma_ilosc
+            FROM produkty
+            WHERE paleta_id IS NOT NULL
+              AND status IN ('magazyn', 'wystawiony', 'szkic')
+              AND COALESCE(dla_siebie, 0) = 0
+            GROUP BY paleta_id, substr(nazwa, 1, 60)
+            HAVING COUNT(*) > 1
+        """).fetchall()
+
+        merged = 0
+        deleted = 0
+        for g in groups:
+            ids = [int(x) for x in g['ids'].split(',')]
+            keep_id = min(ids)  # Najstarszy - ma najwiecej referencji
+            drop_ids = [i for i in ids if i != keep_id]
+            # Update keep_id na sumę ilości
+            conn.execute('UPDATE produkty SET ilosc = ? WHERE id = ?',
+                         (g['suma_ilosc'] or 0, keep_id))
+            # Skasuj duplikaty (ale tylko jeśli nie mają referencji w sprzedaze)
+            for did in drop_ids:
+                ref_count = conn.execute(
+                    'SELECT COUNT(*) FROM sprzedaze WHERE produkt_id = ?', (did,)
+                ).fetchone()[0]
+                if ref_count == 0:
+                    conn.execute('DELETE FROM produkty WHERE id = ?', (did,))
+                    deleted += 1
+                else:
+                    # Ma sprzedaże - tylko ustaw ilosc=0 żeby nie pokazywało się
+                    conn.execute('UPDATE produkty SET ilosc = 0 WHERE id = ?', (did,))
+            merged += 1
+        conn.commit()
+        return jsonify({
+            'ok': True,
+            'merged_groups': merged,
+            'deleted_rows': deleted,
+            'msg': f'Scalono {merged} grup duplikatów, skasowano {deleted} rekordów (osierocone bez sprzedaży)'
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:200]})
+
+
 @app.route('/narzedzia/uzupelnij-zdjecia-amazon', methods=['POST'])
 @require_admin
 def narzedzia_uzupelnij_zdjecia_amazon():
