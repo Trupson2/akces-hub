@@ -616,6 +616,112 @@ def ustawienia_save():
     return redirect('/ustawienia')
 
 
+# ════════════════════════════════════════════════════════════════════════
+# CUSTOM PROMPT do generowania opisow produktow (Gemini AI)
+# Klient moze nadpisac domyslny styl Adriana wlasnym prompt-em.
+# ════════════════════════════════════════════════════════════════════════
+
+@ustawienia_bp.route('/ustawienia/ai-prompt', methods=['GET'])
+def ustawienia_ai_prompt():
+    """Edytor custom promptu do Gemini AI dla opisow Allegro."""
+    from modules.utils import DEFAULT_OPIS_PROMPT
+    current = get_config('gemini_opis_prompt', '')
+    is_custom = bool(current.strip())
+
+    return render_template_string('''{% extends "base.html" %}
+{% block page_title %}Custom prompt AI{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:auto">
+    <div class="hdr">
+        <h1><span class="material-symbols-outlined">smart_toy</span> CUSTOM PROMPT AI</h1>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">
+            Edytor promptu wysyłanego do Gemini przy generowaniu opisów produktów Allegro
+        </div>
+    </div>
+
+    <div style="margin-bottom:18px">
+        {% if is_custom %}
+        <span style="background:rgba(34,197,94,0.15);color:#22c55e;padding:4px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;border:1px solid #22c55e">✓ Aktywny custom prompt</span>
+        {% else %}
+        <span style="background:rgba(143,245,255,0.1);color:#8ff5ff;padding:4px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;border:1px solid rgba(143,245,255,0.3)">Aktualnie: domyślny prompt</span>
+        {% endif %}
+    </div>
+
+    <div class="card" style="padding:18px;margin-bottom:16px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15)">
+        <div style="font-weight:700;color:#8ff5ff;margin-bottom:10px">
+            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">info</span> Jak to działa
+        </div>
+        <ul style="font-size:0.82rem;color:#94a3b8;line-height:1.7;padding-left:20px;margin:0">
+            <li><b>Pusty prompt</b> = używany domyślny styl (jak u dostawcy aplikacji)</li>
+            <li><b>Własny prompt</b> = AI generuje opisy WG TWOICH instrukcji, w TWOIM stylu</li>
+            <li>Dostępne placeholdery (Gemini je podstawi):
+                <code style="background:#0f1019;padding:2px 6px;border-radius:4px;color:#beee00">{{ '{nazwa}' }}</code>,
+                <code style="background:#0f1019;padding:2px 6px;border-radius:4px;color:#beee00">{{ '{features_text}' }}</code>,
+                <code style="background:#0f1019;padding:2px 6px;border-radius:4px;color:#beee00">{{ '{typ}' }}</code>
+            </li>
+            <li><b>UWAGA:</b> filtr fraz blokowanych przez Allegro (np "skontaktuj się", "podaruj", "gwarancja") jest stosowany ZAWSZE po wygenerowaniu — nie da się go wyłączyć, chroni Twoje oferty</li>
+        </ul>
+    </div>
+
+    <form action="/ustawienia/ai-prompt" method="POST">
+        <div class="card" style="padding:18px;margin-bottom:14px">
+            <label style="display:block;font-weight:700;color:#8ff5ff;margin-bottom:10px;font-size:0.9rem">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">edit_note</span>
+                Twój prompt do Gemini (zostaw puste żeby używać domyślnego)
+            </label>
+            <textarea name="prompt" rows="24"
+                style="width:100%;padding:12px;background:#0f1019;border:1px solid #2d3748;border-radius:8px;color:#e2e8f0;font-family:'Cascadia Code', 'Consolas', monospace;font-size:0.82rem;line-height:1.5;resize:vertical;min-height:300px">{{ current }}</textarea>
+            <div style="font-size:0.72rem;color:#64748b;margin-top:6px">
+                Wskazówka: kliknij "Wczytaj domyślny" żeby zobaczyć stock prompt i edytować od jego bazy
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button type="submit" class="btn btn-ok" style="padding:12px 22px;font-weight:700">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">save</span> Zapisz prompt
+            </button>
+            <button type="button" onclick="loadDefault()" class="btn btn-2" style="padding:12px 22px">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">content_copy</span> Wczytaj domyślny do edycji
+            </button>
+            <button type="button" onclick="resetPrompt()" class="btn btn-2" style="padding:12px 22px;background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#ef4444">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">restart_alt</span> Reset (wróć do domyślnego)
+            </button>
+            <a href="/ustawienia" class="back" style="margin-left:auto">← Ustawienia</a>
+        </div>
+    </form>
+</div>
+
+<script id="defaultPromptData" type="application/json">{{ default_json|safe }}</script>
+<script>
+const DEFAULT_PROMPT = JSON.parse(document.getElementById('defaultPromptData').textContent);
+function loadDefault() {
+    const ta = document.querySelector('textarea[name="prompt"]');
+    if (ta.value.trim() && !confirm('Nadpisać aktualną zawartość domyślnym promptem? (możesz potem edytować)')) return;
+    ta.value = DEFAULT_PROMPT;
+}
+function resetPrompt() {
+    if (!confirm('Wyczyścić Twój prompt? Wrócimy do domyślnego (zachowane bezpiecznie w kodzie).')) return;
+    document.querySelector('textarea[name="prompt"]').value = '';
+    document.querySelector('form').submit();
+}
+</script>
+{% endblock %}
+''',
+        current=current,
+        is_custom=is_custom,
+        default_json=__import__('json').dumps(DEFAULT_OPIS_PROMPT),
+    )
+
+
+@ustawienia_bp.route('/ustawienia/ai-prompt', methods=['POST'])
+def ustawienia_ai_prompt_save():
+    """Zapisz custom prompt (pusty = przywroc domyslny)."""
+    prompt = request.form.get('prompt', '').strip()
+    # Pusty -> kasujemy custom (uzywany bedzie DEFAULT_OPIS_PROMPT)
+    set_config('gemini_opis_prompt', prompt)
+    return redirect('/ustawienia/ai-prompt')
+
+
 @ustawienia_bp.route('/ustawienia/integracje-parametry', methods=['POST'])
 def ustawienia_integracje_parametry():
     """Zapisuje parametry integracji (cenniki kurierow, polityki zwrotow/reklamacji).

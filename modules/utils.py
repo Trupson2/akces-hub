@@ -1156,56 +1156,23 @@ Tłumaczenie:"""
     return text
 
 
-def generuj_opis_ai(nazwa, kategoria='inne', bullet_points=None, gemini_key=None):
-    """
-    Generuje profesjonalny opis produktu do Allegro używając Gemini API.
-    ZMIANA: Używa bullet_points z Amazona zamiast wymyślać ogólniki.
-    
-    Args:
-        nazwa: nazwa produktu
-        kategoria: kategoria produktu
-        bullet_points: lista cech z Amazona (teksty)
-        gemini_key: klucz API Gemini
-    """
-    from .database import get_config
-    
-    # Sprawdź czy SDK jest dostępne
-    if not GEMINI_SDK_AVAILABLE:
-        print("[Gemini] SDK nie jest zainstalowane - używam fallback")
-        return generuj_opis_fallback(nazwa, kategoria)
-    
-    api_key = gemini_key or get_config('gemini_api_key', '')
-    
-    if api_key and bullet_points and len(bullet_points) > 0:
-        try:
-            # Formatuj bullet points do promptu
-            features_text = '\n'.join([f'- {bp}' for bp in bullet_points])
-            
-            # Określ typ produktu na podstawie nazwy
-            nazwa_lower = nazwa.lower()
-            
-            # Czy to elektronika/urządzenie?
-            is_electronics = any(word in nazwa_lower for word in [
-                'ładowarka', 'kabel', 'adapter', 'powerbank', 'słuchawki', 'głośnik',
-                'mysz', 'klawiatura', 'usb', 'hdmi', 'bluetooth', 'wifi', 'router',
-                'lampka', 'led', 'zasilacz', 'bateria', 'akumulator'
-            ])
-            
-            # Czy to dekoracja/materiał/ozdoba?
-            is_decoration = any(word in nazwa_lower for word in [
-                'tło', 'zasłona', 'banner', 'ozdoba', 'dekoracja', 'cekin', 
-                'balkon', 'girlanda', 'konfetti', 'serwetka', 'obrus', 'tkanina'
-            ])
-            
-            # PROMPT - ROZBUDOWANE OPISY v3 (konkretne, bez lania wody)
-            prompt = f"""Jesteś doświadczonym sprzedawcą na Allegro. Pisz jak ekspert, który ZNA produkt — nie jak marketingowiec który wypełnia szablon.
+# ─── DEFAULT PROMPT do Gemini dla opisu Allegro ──────────────────────────
+# Klient mozе nadpisac w /ustawienia -> "Custom prompt opisu" (config:
+# gemini_opis_prompt). Dostepne placeholdery do podstawienia w prompt:
+#   {nazwa}         - nazwa produktu (string)
+#   {features_text} - bullet points z Amazona, kazdy w nowej linii z "- "
+#   {typ}           - "Elektronika/Urządzenie" | "Dekoracja/Materiał" | "Produkt fizyczny"
+# Pelny opis filtrowanych fraz (skontaktuj sie, prezent, gwarancja) jest
+# stosowany PO wygenerowaniu, niezaleznie od prompta - chroni klienta przed
+# zablokowaniem oferty przez Allegro.
+DEFAULT_OPIS_PROMPT = """Jesteś doświadczonym sprzedawcą na Allegro. Pisz jak ekspert, który ZNA produkt — nie jak marketingowiec który wypełnia szablon.
 
 PRODUKT: {nazwa}
 
 CECHY Z AMAZONA (źródło faktów — NIE wymyślaj nowych parametrów):
 {features_text}
 
-TYP: {'Elektronika/Urządzenie' if is_electronics else ('Dekoracja/Materiał' if is_decoration else 'Produkt fizyczny')}
+TYP: {typ}
 
 === KRYTYCZNE: PRZEFORMUŁOWANIE ===
 BEZWZGLEDNY ZAKAZ kopiowania/tłumaczenia bullet pointów z Amazona!
@@ -1246,15 +1213,90 @@ BEZWZGLEDNY ZAKAZ kopiowania/tłumaczenia bullet pointów z Amazona!
 ✓ Pisz "ten produkt", "to urządzenie" — nie powtarzaj pełnej nazwy
 
 === ZAKAZ ===
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Wymyślanie parametrów których nie ma w bullet points
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> BEZWZGLEDNY ZAKAZ fraz sugerujacych kontakt: "skontaktuj sie", "napisz do nas", "zapytaj", "podaruj bliskim", "podarować", "prezent dla", "idealny na prezent", "mozesz podarowac" — Allegro automatycznie blokuje oferty z takimi frazami!
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Tytuł produktu na początku
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
-<span class=material-symbols-outlined style=color:#ef4444>cancel</span> Wymyślanie ilości sztuk w zestawie jeśli nie podano
+- Puste frazesy: "najwyższa jakość", "wyjątkowe wykonanie", "innowacyjne rozwiązanie"
+- Wymyślanie parametrów których nie ma w bullet points
+- Sekcje: wysyłka, zwroty, kontakt, gwarancja, GPSR
+- BEZWZGLEDNY ZAKAZ fraz sugerujacych kontakt: "skontaktuj sie", "napisz do nas", "zapytaj", "podaruj bliskim", "podarować", "prezent dla", "idealny na prezent", "mozesz podarowac" — Allegro automatycznie blokuje oferty z takimi frazami!
+- Tytuł produktu na początku
+- Wymiary typu "10x2.75" to ROZMIARY, nie ilości sztuk
+- Wymyślanie ilości sztuk w zestawie jeśli nie podano
 
 Wygeneruj opis:"""
+
+
+def generuj_opis_ai(nazwa, kategoria='inne', bullet_points=None, gemini_key=None):
+    """
+    Generuje profesjonalny opis produktu do Allegro używając Gemini API.
+    ZMIANA: Używa bullet_points z Amazona zamiast wymyślać ogólniki.
+
+    UWAGA: Prompt jest konfigurowalny w /ustawienia (config: gemini_opis_prompt).
+    Jesli pusty - uzywany jest DEFAULT_OPIS_PROMPT (kanoniczny styl Adriana).
+
+    Args:
+        nazwa: nazwa produktu
+        kategoria: kategoria produktu
+        bullet_points: lista cech z Amazona (teksty)
+        gemini_key: klucz API Gemini
+    """
+    from .database import get_config
+    
+    # Sprawdź czy SDK jest dostępne
+    if not GEMINI_SDK_AVAILABLE:
+        print("[Gemini] SDK nie jest zainstalowane - używam fallback")
+        return generuj_opis_fallback(nazwa, kategoria)
+    
+    api_key = gemini_key or get_config('gemini_api_key', '')
+    
+    if api_key and bullet_points and len(bullet_points) > 0:
+        try:
+            # Formatuj bullet points do promptu
+            features_text = '\n'.join([f'- {bp}' for bp in bullet_points])
+            
+            # Określ typ produktu na podstawie nazwy
+            nazwa_lower = nazwa.lower()
+            
+            # Czy to elektronika/urządzenie?
+            is_electronics = any(word in nazwa_lower for word in [
+                'ładowarka', 'kabel', 'adapter', 'powerbank', 'słuchawki', 'głośnik',
+                'mysz', 'klawiatura', 'usb', 'hdmi', 'bluetooth', 'wifi', 'router',
+                'lampka', 'led', 'zasilacz', 'bateria', 'akumulator'
+            ])
+            
+            # Czy to dekoracja/materiał/ozdoba?
+            is_decoration = any(word in nazwa_lower for word in [
+                'tło', 'zasłona', 'banner', 'ozdoba', 'dekoracja', 'cekin', 
+                'balkon', 'girlanda', 'konfetti', 'serwetka', 'obrus', 'tkanina'
+            ])
+            
+            # Pre-render typu produktu (Elektronika/Dekoracja/Inny) - do placeholdera {typ}
+            typ_str = ('Elektronika/Urządzenie' if is_electronics
+                       else ('Dekoracja/Materiał' if is_decoration else 'Produkt fizyczny'))
+
+            # CUSTOM PROMPT? Klient moze nadpisac w /ustawienia (gemini_opis_prompt).
+            # Domyslny prompt = DEFAULT_OPIS_PROMPT (zachowuje stary styl Adriana).
+            # Klient pisze WLASNY prompt w stylu jaki chce - placeholdery {nazwa},
+            # {features_text}, {typ} sa podstawiane.
+            try:
+                custom_prompt = get_config('gemini_opis_prompt', '').strip()
+            except Exception:
+                custom_prompt = ''
+
+            prompt_template = custom_prompt if custom_prompt else DEFAULT_OPIS_PROMPT
+            try:
+                prompt = prompt_template.format(
+                    nazwa=nazwa,
+                    features_text=features_text,
+                    typ=typ_str,
+                )
+            except (KeyError, IndexError, ValueError) as _fmt_err:
+                # Custom prompt klient uzyl nieprawidlowych placeholderow ({xyz} itp).
+                # Fallback do default - nie blokujemy generowania opisu.
+                print(f'[Gemini] Custom prompt nieprawidlowy ({_fmt_err}), uzywam default')
+                prompt = DEFAULT_OPIS_PROMPT.format(
+                    nazwa=nazwa,
+                    features_text=features_text,
+                    typ=typ_str,
+                )
 
             # NOWE API google.genai
             try:
