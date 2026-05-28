@@ -509,27 +509,40 @@ if(localStorage.getItem('kiosk_mode')==='1'){
 </div>
 <script>
 function doUpdateFromBanner(e) {
-    // FIX 2026-05-28: fetch zamiast form submit. Form submit nawigowal na URL
-    // (zostawal 404 jak endpoint nie istnial). fetch zostaje na aktualnej stronie
-    // i pokazuje toast - user nie traci kontekstu.
+    // FIX 2026-05-28 v1.0.84: fallback do /system/update jak /admin/update-git
+    // zwroci 404 (Pi z nieaktualnymi routes po git pull bez restartu Flask).
+    // Bez fallbacku baner byl niezdolny do samonaprawienia.
     if (e) e.stopPropagation();
     var txt = document.getElementById('updateBarText');
     var origText = txt.innerHTML;
-    txt.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:bspin 1s linear infinite"></span> Aktualizuję...';
-    fetch('/admin/update-git', {method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
-        .then(function(r){return r.json();})
-        .then(function(d){
+    var spinner = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:bspin 1s linear infinite"></span>';
+    txt.innerHTML = spinner + ' Aktualizuję...';
+
+    function tryUpdate(url, isFallback) {
+        return fetch(url, {method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})
+            .then(function(r){
+                if (r.status === 404 && !isFallback) {
+                    // Stary serwer bez /admin/update-git -> probuj /system/update
+                    return tryUpdate('/system/update', true);
+                }
+                return r.json().then(function(d){return {status: r.status, body: d};});
+            });
+    }
+
+    tryUpdate('/admin/update-git', false)
+        .then(function(res){
+            var d = res.body || {};
             if (d.ok) {
                 txt.innerHTML = '✓ ' + (d.msg || 'Zaktualizowano - restart...');
                 setTimeout(function(){location.reload();}, 6000);
             } else {
-                txt.innerHTML = '❌ ' + (d.error || 'Błąd');
-                setTimeout(function(){txt.innerHTML = origText;}, 5000);
+                txt.innerHTML = '❌ ' + (d.error || ('HTTP ' + res.status));
+                setTimeout(function(){txt.innerHTML = origText;}, 6000);
             }
         })
         .catch(function(){
             // Może aplikacja restartuje - poczekaj i reload
-            txt.innerHTML = '<span class="spinner"></span> Restart w toku... odświeżam za 8s';
+            txt.innerHTML = spinner + ' Restart w toku... odświeżam za 8s';
             setTimeout(function(){location.reload();}, 8000);
         });
 }
