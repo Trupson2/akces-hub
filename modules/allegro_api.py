@@ -1842,11 +1842,13 @@ def update_offer_condition(offer_id, stan):
 # 4 opcje: klasyczny | mirror | tekst_top | galeria_first
 # ════════════════════════════════════════════════════════════════════════
 
-LAYOUTS_AVAILABLE = ['klasyczny', 'mirror', 'tekst_top', 'galeria_first']
+LAYOUTS_AVAILABLE = ['klasyczny', 'mirror', 'tekst_top', 'galeria_first', 'bloki']
 
 LAYOUTS_INFO = {
     'klasyczny': {
         'label': 'Klasyczny',
+        'icon': 'view_column',
+        'color': '#8ff5ff',
         'desc': 'Zdjęcie z lewej + tekst z prawej, przeplatane. Reszta zdjęć na końcu po 2.',
         'wireframe': (
             'H2 Tytuł\n'
@@ -1858,6 +1860,8 @@ LAYOUTS_INFO = {
     },
     'mirror': {
         'label': 'Lustro',
+        'icon': 'swap_horiz',
+        'color': '#a78bfa',
         'desc': 'Tekst z lewej + zdjęcie z prawej (odwrotnie niż klasyczny). Cieplejsze dla tekstu.',
         'wireframe': (
             'H2 Tytuł\n'
@@ -1869,6 +1873,8 @@ LAYOUTS_INFO = {
     },
     'tekst_top': {
         'label': 'Tekst dominujący',
+        'icon': 'article',
+        'color': '#beee00',
         'desc': 'Jedno duże zdjęcie + cały tekst pod spodem. Reszta zdjęć po 2 na końcu. Czyste, mniej rozpraszające.',
         'wireframe': (
             'H2 Tytuł\n'
@@ -1881,12 +1887,28 @@ LAYOUTS_INFO = {
     },
     'galeria_first': {
         'label': 'Galeria na górze',
+        'icon': 'photo_library',
+        'color': '#ff6b9b',
         'desc': 'Najpierw 4 zdjęcia w 2 wierszach, potem cały opis. Klient widzi produkt zanim czyta.',
         'wireframe': (
             'H2 Tytuł\n'
             '[IMG] [IMG]\n'
             '[IMG] [IMG]\n'
             '[TEXT]\n'
+            '[TEXT]\n'
+        ),
+    },
+    'bloki': {
+        'label': 'Bloki (na przemian)',
+        'icon': 'view_agenda',
+        'color': '#fb923c',
+        'desc': 'Tekst → 2 zdjęcia obok → tekst → 2 zdjęcia → tekst. Rytmiczne czytanie z przerwami wizualnymi.',
+        'wireframe': (
+            'H2 Tytuł\n'
+            '[TEXT]\n'
+            '[IMG] [IMG]\n'
+            '[TEXT]\n'
+            '[IMG] [IMG]\n'
             '[TEXT]\n'
         ),
     },
@@ -1921,7 +1943,9 @@ def _parse_paragraphs_and_chunks(opis_html_clean, n_chunks_target):
         _has_tags = any('<' in p for p in paragraphs)
         return [''.join(p if _has_tags else f'<p>{p}</p>' for p in paragraphs)]
 
-    chunk_size = max(2, len(paragraphs) // n_chunks_target)
+    # max(1, ...) zeby pozwolic na chunki po 1 paragrafie jak za malo materialu
+    # (kluczowe dla layoutu BLOKI ktory chce konczyc tekstem)
+    chunk_size = max(1, len(paragraphs) // n_chunks_target)
     chunks = []
     for i in range(0, len(paragraphs), chunk_size):
         chunk = ''.join(f'<p>{p}</p>' for p in paragraphs[i:i+chunk_size])
@@ -1956,6 +1980,8 @@ def _build_description_sections(layout, nazwa, opis_html_clean, bullet_points, u
         sections = _layout_tekst_top(nazwa, opis_html_clean, uploaded_images)
     elif layout == 'galeria_first':
         sections = _layout_galeria_first(nazwa, opis_html_clean, uploaded_images)
+    elif layout == 'bloki':
+        sections = _layout_bloki(nazwa, opis_html_clean, uploaded_images)
     else:
         sections = _layout_klasyczny(nazwa, opis_html_clean, uploaded_images)
 
@@ -2119,6 +2145,61 @@ def _layout_galeria_first(nazwa, opis_html_clean, uploaded_images):
             img_items.append({'type': 'IMAGE', 'url': uploaded_images[img_idx]})
             img_idx += 1
         sections.append({'items': img_items})
+
+    return sections
+
+
+def _layout_bloki(nazwa, opis_html_clean, uploaded_images):
+    """Tekst -> 2 zdjecia obok -> tekst -> 2 zdjecia -> tekst (na przemian).
+    Konczy ZAWSZE TEKSTEM (gdy jest jakikolwiek opis) - rytmiczne czytanie.
+    """
+    sections = [_h2_section(nazwa)]
+
+    # Zbierz pary zdjec z gory (max 8 zdjec = max 4 pary)
+    max_img = min(len(uploaded_images), 8)
+    img_pairs = []
+    for i in range(0, max_img, 2):
+        pair = [{'type': 'IMAGE', 'url': uploaded_images[i]}]
+        if i + 1 < max_img:
+            pair.append({'type': 'IMAGE', 'url': uploaded_images[i + 1]})
+        img_pairs.append(pair)
+
+    # Chunki tekstu: 1 wiecej niz par zdjec, zeby konczyc tekstem
+    n_chunks = (len(img_pairs) + 1) if img_pairs else 1
+    chunks = _parse_paragraphs_and_chunks(opis_html_clean, n_chunks)
+
+    # Edge case'y: brak jednej strony
+    if not chunks and not img_pairs:
+        return sections  # tylko H2
+    if not img_pairs:
+        # Same teksty - wszystkie w jednej sekcji
+        sections.append({'items': [{'type': 'TEXT', 'content': ''.join(chunks)}]})
+        return sections
+    if not chunks:
+        # Same zdjecia - kolejne pary jako osobne sekcje
+        for pair in img_pairs:
+            sections.append({'items': pair})
+        return sections
+
+    # PEELNY RYTM: TEXT, IMG_PAIR, TEXT, IMG_PAIR, ..., TEXT (na koncu)
+    chunk_idx = 0
+
+    # Intro tekst
+    sections.append({'items': [{'type': 'TEXT', 'content': chunks[chunk_idx]}]})
+    chunk_idx += 1
+
+    # Pary zdjec naprzemiennie z chunkami
+    for pair in img_pairs:
+        sections.append({'items': pair})
+        if chunk_idx < len(chunks):
+            sections.append({'items': [{'type': 'TEXT', 'content': chunks[chunk_idx]}]})
+            chunk_idx += 1
+
+    # Wszystkie pozostale chunki na koniec (zlepione razem) - gwarancja
+    # ze ostatnia sekcja to TEXT, jak chcial klient
+    if chunk_idx < len(chunks):
+        remaining = ''.join(chunks[chunk_idx:])
+        sections.append({'items': [{'type': 'TEXT', 'content': remaining}]})
 
     return sections
 

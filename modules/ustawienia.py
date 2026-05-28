@@ -737,7 +737,36 @@ def ustawienia_layout_opisu():
     return render_template_string('''{% extends "base.html" %}
 {% block page_title %}Layout opisu Allegro{% endblock %}
 {% block content %}
-<div style="max-width:1200px;margin:auto">
+<style>
+.layout-card {
+    padding:16px;border-radius:12px;border:2px solid rgba(255,255,255,0.06);
+    background:rgba(22,26,33,0.5);transition:all 0.2s;height:100%;
+    display:flex;flex-direction:column;gap:10px;
+}
+.layout-card:hover { border-color:rgba(143,245,255,0.35); transform:translateY(-2px); }
+.layout-card.selected {
+    box-shadow:0 0 24px rgba(143,245,255,0.2);
+    background:rgba(143,245,255,0.06);
+}
+.layout-icon-wrap {
+    width:48px;height:48px;border-radius:10px;display:flex;align-items:center;
+    justify-content:center;flex-shrink:0;
+}
+.layout-icon-wrap .material-symbols-outlined {
+    font-size:28px;line-height:1;
+}
+.layout-save-btn {
+    display:inline-flex !important;width:auto !important;padding:14px 32px;
+    font-size:0.95rem;font-weight:800;border:none;border-radius:12px;cursor:pointer;
+    background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff !important;
+    transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px;
+    align-items:center;gap:8px;
+}
+.layout-save-btn:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(34,197,94,0.3); }
+.layout-save-btn .material-symbols-outlined { font-size:1.1rem; }
+</style>
+
+<div style="max-width:1280px;margin:auto">
     <div class="hdr">
         <h1><span class="material-symbols-outlined">view_quilt</span> LAYOUT OPISU ALLEGRO</h1>
         <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">
@@ -751,39 +780,40 @@ def ustawienia_layout_opisu():
         </div>
         <div style="font-size:0.82rem;color:#94a3b8;line-height:1.6">
             Allegro pokazuje opis jako sekcje. Każda sekcja może mieć 1 lub 2 elementy (zdjęcie, tekst, zdjęcie+tekst).
-            Ten ustawienie wpływa na <b>kolejność</b> i <b>parowanie</b> tych elementów. Nazwa, ASIN, parametry i GPSR są budowane osobno.
+            To ustawienie wpływa na <b>kolejność</b> i <b>parowanie</b> tych elementów. Nazwa, ASIN, parametry i GPSR są budowane osobno.
         </div>
     </div>
 
     <form action="/ustawienia/layout-opisu" method="POST">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:20px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:24px">
         {% for key in layouts_order %}
             {% set info = layouts_info[key] %}
             <label style="cursor:pointer;display:block">
                 <input type="radio" name="layout" value="{{ key }}" {{ 'checked' if key == current else '' }}
-                    style="position:absolute;opacity:0;pointer-events:none" onchange="this.closest('label').parentElement.querySelectorAll('label > div').forEach(d => d.classList.remove('selected')); this.closest('label').querySelector('div').classList.add('selected')">
-                <div class="layout-card {{ 'selected' if key == current else '' }}" style="padding:16px;border-radius:12px;border:2px solid {{ '#8ff5ff' if key == current else 'rgba(255,255,255,0.06)' }};background:{{ 'rgba(143,245,255,0.06)' if key == current else 'rgba(22,26,33,0.5)' }};transition:all 0.2s;height:100%">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                        <div style="font-weight:800;color:#8ff5ff;font-size:0.95rem">{{ info.label }}</div>
-                        {% if key == 'klasyczny' %}<span style="font-size:0.7rem;background:rgba(190,238,0,0.15);color:#beee00;padding:2px 8px;border-radius:4px;font-weight:700">DOMYŚLNY</span>{% endif %}
+                    style="position:absolute;opacity:0;pointer-events:none"
+                    onchange="document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected')); this.closest('label').querySelector('.layout-card').classList.add('selected')">
+                <div class="layout-card {{ 'selected' if key == current else '' }}" style="border-color:{{ info.color if key == current else 'rgba(255,255,255,0.06)' }}">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <div class="layout-icon-wrap" style="background:{{ info.color }}1a;border:1px solid {{ info.color }}55">
+                            <span class="material-symbols-outlined" style="color:{{ info.color }}">{{ info.icon }}</span>
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-weight:800;color:{{ info.color }};font-size:1rem;line-height:1.2">{{ info.label }}</div>
+                            {% if key == 'klasyczny' %}<div style="margin-top:4px"><span style="font-size:0.65rem;background:rgba(190,238,0,0.15);color:#beee00;padding:2px 8px;border-radius:4px;font-weight:700;letter-spacing:0.5px">DOMYŚLNY</span></div>{% endif %}
+                        </div>
                     </div>
-                    <div style="font-size:0.78rem;color:#94a3b8;line-height:1.5;margin-bottom:12px;min-height:55px">
+                    <div style="font-size:0.78rem;color:#94a3b8;line-height:1.5;min-height:55px">
                         {{ info.desc }}
                     </div>
-                    <pre style="background:#0f1019;border:1px solid #2d3748;border-radius:6px;padding:10px;color:#e2e8f0;font-family:'Cascadia Code', 'Consolas', monospace;font-size:0.72rem;line-height:1.4;margin:0;white-space:pre">{{ info.wireframe }}</pre>
+                    <pre style="background:#0f1019;border:1px solid #2d3748;border-radius:6px;padding:10px;color:#e2e8f0;font-family:'Cascadia Code', 'Consolas', monospace;font-size:0.72rem;line-height:1.4;margin:0;white-space:pre;flex:1">{{ info.wireframe }}</pre>
                 </div>
             </label>
         {% endfor %}
         </div>
 
-        <style>
-        .layout-card:hover { border-color:rgba(143,245,255,0.4) !important; }
-        .layout-card.selected { box-shadow:0 0 16px rgba(143,245,255,0.15); }
-        </style>
-
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button type="submit" class="btn btn-ok" style="padding:12px 26px;font-weight:700">
-                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">save</span> Zapisz wybrany layout
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button type="submit" class="layout-save-btn">
+                <span class="material-symbols-outlined">save</span> Zapisz wybrany layout
             </button>
             <a href="/ustawienia" class="back" style="margin-left:auto">← Ustawienia</a>
         </div>
@@ -791,6 +821,7 @@ def ustawienia_layout_opisu():
 
     <div class="card" style="padding:14px;margin-top:18px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2)">
         <div style="font-size:0.78rem;color:#fbbf24">
+            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span>
             <b>Uwaga:</b> Layout wpływa tylko na <b>nowo wystawiane</b> oferty (po zapisaniu). Już wystawione oferty zachowują swój istniejący opis.
         </div>
     </div>
