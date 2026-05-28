@@ -6470,14 +6470,14 @@ def import_multi_page():
     """
     html = '''
     <div class="hdr"><h1><span class="material-symbols-outlined">view_module</span> IMPORT MULTI-PALETA</h1>
-        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">Excel z wieloma paletami (CRM Online / własny format z kolumną NR PALETY)</div>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">Wgraj dowolny Excel z paletami — system rozpozna kolumny, a Ty potwierdzisz mapping przed importem</div>
     </div>
 
-    <form action="/magazyn/import-multi/upload" method="POST" enctype="multipart/form-data" id="multiImportForm">
+    <form action="/magazyn/import-multi/preview" method="POST" enctype="multipart/form-data" id="multiImportForm">
         <div class="card" style="padding:30px;text-align:center;cursor:pointer" onclick="document.getElementById('multiFile').click()">
             <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:3rem">cloud_upload</span></div>
             <div style="font-weight:600;font-size:1.05rem">Wybierz plik Excel (.xlsx)</div>
-            <div style="font-size:0.8rem;color:#64748b;margin-top:5px">Auto-detekcja kolumn + auto-utworzenie palet</div>
+            <div style="font-size:0.8rem;color:#64748b;margin-top:5px">Następny krok: podgląd + mapowanie kolumn (możesz poprawić jeśli auto-detekcja się myli)</div>
             <input type="file" id="multiFile" name="file" style="display:none" accept=".xlsx" onchange="document.getElementById('multiSubmitBtn').click()">
         </div>
         <button type="submit" id="multiSubmitBtn" style="display:none"></button>
@@ -6486,23 +6486,605 @@ def import_multi_page():
     <div class="card" style="padding:18px;margin-top:18px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15)">
         <div style="font-weight:700;color:#8ff5ff;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">info</span> Jak to działa</div>
         <ul style="font-size:0.82rem;color:#94a3b8;line-height:1.7;padding-left:20px;margin:0">
-            <li>Wykrywa kolumnę <code>NR PALETY</code> (lub <code>PALLET</code>, <code>BATCH</code>, <code>LOT</code>)</li>
-            <li>Każda unique wartość = osobna paleta (auto-utworzona jeśli nie istnieje)</li>
-            <li>Dostawca: z kolumny <code>PALETA</code> (URL) → wyciągana domena (miglo, jobalots itp.)</li>
-            <li>Kod produktu: <code>ASIN</code> (priorytet) lub <code>EAN</code>/<code>KOD</code></li>
-            <li>Cena netto: <code>Zakup 1szt netto</code>; brutto = netto × 1.23 (auto-kalkulacja)</li>
-            <li>Stan: <code>STAN</code> (Nowy/Uszkodzony/Powystawowy)</li>
-            <li>Status:<br>
-                &nbsp;&nbsp;• <code>Sprzedane</code> → <span style="color:#22c55e">sprzedany</span> (zachowuje historię)<br>
-                &nbsp;&nbsp;• <code>Wyjebane</code> → <span style="color:#ef4444">uszkodzony</span><br>
-                &nbsp;&nbsp;• inne / <code>Dostępne</code> → <span style="color:#8ff5ff">magazyn</span></li>
-            <li>Powtórzone nagłówki w środku pliku (po każdej palecie) — auto-pomijane</li>
+            <li>System auto-rozpoznaje kolumny po nazwach (PL/EN): NR PALETY, Numer Palety, Pallet, Lot, Batch, NAZWA, Name, ASIN, EAN, Ilość, STAN, STATUS, Cena netto, Cena Allegro, INFO/Notatki</li>
+            <li>Jeśli kolumny mają cudaczne nazwy lub czegoś nie znajdzie — <b>w podglądzie wybierzesz ręcznie</b> z dropdownów</li>
+            <li>Jeśli plik NIE ma kolumny palety — wszystko trafi do jednej palety (też wybierzesz)</li>
+            <li>Sample 5 pierwszych wierszy widoczny przed importem żeby sprawdzić mapping</li>
+            <li>Powtórzone nagłówki w środku pliku — auto-pomijane</li>
         </ul>
     </div>
 
     <a href="/magazyn/import" class="back" style="margin-top:18px">← Powrót do importu standardowego</a>
     '''
     return render(html)
+
+
+# ─── ROLES dla wizardu importu ────────────────────────────────────────────
+# (role_key, label, required, [keywordy auto-detect po normalizacji - bez spacji/_/-])
+#
+# UWAGA: keywordy maja byc DYSKRYMINUJACE - tylko nazwy ktore SILNIE wskazuja
+# na role. Niejednoznaczne (np 'KOD' moze byc numer porzadkowy LUB SKU,
+# 'SPRZEDANE' moze byc LICZBA sprzedanych LUB status string) - pomijamy w
+# auto-detect, user wybierze recznie w wizardzie.
+_IMPORT_ROLES = [
+    ('nr_paleta',    'NR Palety',         False, ['NRPALETY','NUMERPALETY','NRPAL','PALLETNO','PALLETNR','PALLETID','BATCHNO','LOTNO','PALETANUMER']),
+    ('paleta_url',   'URL źródła palety', False, ['LINK','URL','ZRODLO','SOURCE','PALETA']),
+    ('nazwa',        'Nazwa produktu',    True,  ['NAZWA','NAME','PRODUKT','TYTUL','TITLE','OPIS','DESCRIPTION']),
+    ('asin',         'ASIN',              False, ['ASIN']),
+    # EAN: tylko nazwy ktore JEDNOZNACZNIE oznaczaja kod (NIE 'KOD' - to czesto
+    # numer porzadkowy LP). User mapuje recznie jak ma 'KOD' jako EAN.
+    ('ean',          'EAN / Barcode',     False, ['EAN','BARCODE','KODKRESKOWY']),
+    ('ilosc',        'Ilość',             False, ['ILOSC','ILOŚĆ','QTY','QUANTITY','SZTUK','SZTUKI','STOCK']),
+    ('stan',         'Stan produktu',     False, ['STAN','CONDITION','JAKOSC']),
+    # STATUS: tylko literal 'STATUS' (NIE 'SPRZEDANE' - to liczba ile sprzedanych)
+    ('status',       'Status sprzedaży',  False, ['STATUS']),
+    ('cena_netto',   'Cena netto / szt',  False, ['ZAKUP1SZTNETTO','ZAKUP1SZT','CENANETTO1SZT','CENANETTO','KOSZTNETTO','PRICENETTO','COSTNETTO']),
+    ('cena_allegro', 'Cena Allegro',      False, ['CENAALLEGRO','CENAA','ALLEGROPRICE','PRICEALLEGRO']),
+    ('info',         'Notatki / INFO',    False, ['INFO','NOTATKI','NOTES','UWAGI','COMMENT','REMARK']),
+]
+
+
+def _import_tmp_dir():
+    """Katalog na tymczasowe pliki importu (z UUID)."""
+    import tempfile
+    from pathlib import Path as _P
+    d = _P(tempfile.gettempdir()) / 'akces_imports'
+    d.mkdir(exist_ok=True)
+    return d
+
+
+def _import_cleanup_old(max_age_hours=2):
+    """Skasuj tmp pliki importu starsze niz X godzin."""
+    import time
+    try:
+        d = _import_tmp_dir()
+        now = time.time()
+        cutoff = now - (max_age_hours * 3600)
+        for f in d.glob('*.xlsx'):
+            try:
+                if f.stat().st_mtime < cutoff:
+                    f.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def _find_header_row(ws):
+    """Szukaj wiersza naglowkowego w pierwszych 15 wierszach. Zwroc index 1-based, -1 jesli brak."""
+    for row_idx in range(1, min(16, (ws.max_row or 0) + 1)):
+        row_vals = [str(ws.cell(row=row_idx, column=c).value or '').upper().strip()
+                    for c in range(1, min((ws.max_column or 0) + 1, 40))]
+        joined = '|'.join(row_vals)
+        # Wiersz naglowkowy ma rozsadnie wiele wypelnionych komorek i co najmniej jedna z typowych nazw
+        non_empty = sum(1 for v in row_vals if v)
+        if non_empty < 3:
+            continue
+        if any(kw in joined for kw in ['NAZWA','NAME','PRODUKT','TYTUL','TITLE','ASIN','EAN','KOD','NR PALETY','PALLET','BATCH','LOT']):
+            return row_idx
+    return -1
+
+
+def _auto_detect_columns(headers):
+    """Dla kazdego role z _IMPORT_ROLES zwroc index kolumny lub -1.
+
+    headers: list[str] - lista naglowkow z pliku (uppercase OK)
+    Returns: dict {role_key: col_index}
+    """
+    result = {}
+    used_cols = set()
+    headers_norm = [h.upper().replace(' ', '').replace('_', '').replace('-', '').replace('.', '') for h in headers]
+    for role_key, _label, _required, keywords in _IMPORT_ROLES:
+        found = -1
+        for i, hn in enumerate(headers_norm):
+            if i in used_cols:
+                continue
+            for kw in keywords:
+                kwn = kw.replace(' ', '')
+                # Exact match priorytet, potem substring jesli rozsadne
+                if hn == kwn:
+                    found = i
+                    break
+                if kwn in hn and len(hn) < len(kwn) + 12:
+                    found = i
+                    break
+            if found >= 0:
+                break
+        result[role_key] = found
+        if found >= 0:
+            used_cols.add(found)
+    return result
+
+
+def _parse_row_with_mapping(row, col_map, row_idx):
+    """Sparsuj jeden wiersz Excela do dict produktu wg col_map.
+
+    Args:
+        row: tuple komorek (z iter_rows values_only=True)
+        col_map: dict {role_key: col_index (-1 = pominiety)}
+        row_idx: numer wiersza (do error msg)
+    Returns:
+        dict z polami: nr_paleta, paleta_url, asin, ean, nazwa, ilosc, stan,
+        status, cena_netto, cena_allegro, info
+        Lub None jezeli wiersz nalezy pominac (header repeat, pusty, brak danych)
+        Lub dict z _skip_reason='...' dla statystyki
+    """
+    if not row:
+        return {'_skip_reason': 'pusty'}
+    if all(v is None or str(v).strip() == '' for v in row):
+        return {'_skip_reason': 'pusty'}
+
+    # Header repeat detection
+    first = str(row[0] or '').strip().upper()
+    if first in ('KOD', 'NR PALETY', 'PALETA', 'LP', 'L.P.', 'NR'):
+        return {'_skip_reason': 'header_repeat'}
+
+    def get(role):
+        idx = col_map.get(role, -1)
+        if idx < 0 or idx >= len(row):
+            return None
+        return row[idx]
+
+    def get_str(role):
+        v = get(role)
+        if v is None:
+            return ''
+        s = str(v).strip()
+        if s.endswith('.0'):
+            s = s[:-2]
+        if s.upper() in ('NONE', 'NAN', '-'):
+            return ''
+        return s
+
+    def get_float(role):
+        v = get(role)
+        if v is None or str(v).strip() == '':
+            return 0.0
+        try:
+            return float(str(v).replace(',', '.').replace(' ', '').replace('zł', '').replace('PLN', '').strip())
+        except Exception:
+            return 0.0
+
+    def get_int(role, default=1):
+        v = get(role)
+        if v is None or str(v).strip() == '':
+            return default
+        try:
+            return int(float(str(v).replace(',', '.')))
+        except Exception:
+            return default
+
+    nr_paleta = get_str('nr_paleta')
+    asin = get_str('asin')
+    ean = get_str('ean')
+    if not ean and asin:
+        ean = asin
+    nazwa = get_str('nazwa')
+
+    # Wiersz bez ASIN/EAN i bez nazwy = nic do importu
+    if not asin and not ean and not nazwa:
+        return {'_skip_reason': 'pusty'}
+
+    if not nazwa:
+        nazwa = ean or asin or f'Produkt #{row_idx}'
+
+    return {
+        'nr_paleta': nr_paleta,
+        'paleta_url': get_str('paleta_url'),
+        'asin': asin,
+        'ean': ean,
+        'nazwa': nazwa,
+        'ilosc': get_int('ilosc', 1),
+        'stan_raw': get('stan'),
+        'status_raw': get('status'),
+        'cena_netto': get_float('cena_netto'),
+        'cena_allegro': get_float('cena_allegro'),
+        'info': get_str('info'),
+    }
+
+
+@magazynier_bp.route('/import-multi/preview', methods=['POST'])
+def import_multi_preview():
+    """KROK 2: Po uploadzie pokaz auto-detect + sample + dropdowny do zmiany."""
+    if 'file' not in request.files:
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    file = request.files['file']
+    if not file.filename or not file.filename.lower().endswith('.xlsx'):
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Tylko pliki .xlsx są obsługiwane</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    import secrets
+    _import_cleanup_old()
+    tmp_uuid = secrets.token_urlsafe(16).replace('-', '_').replace('/', '_')
+    tmp_path = _import_tmp_dir() / f'{tmp_uuid}.xlsx'
+    file.save(str(tmp_path))
+
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(str(tmp_path), data_only=True)
+    except ImportError:
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Brak biblioteki openpyxl. Zainstaluj: pip install openpyxl</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+    except Exception as e:
+        return render(f'<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie da się otworzyć pliku: {str(e)[:200]}</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    # Wybierz sheet
+    target_sheet = None
+    for sn in wb.sheetnames:
+        if 'magazyn' in sn.lower() or 'inventory' in sn.lower() or 'stock' in sn.lower():
+            target_sheet = sn
+            break
+    if not target_sheet:
+        target_sheet = wb.sheetnames[0]
+    ws = wb[target_sheet]
+
+    header_row = _find_header_row(ws)
+    if header_row < 0:
+        # Domyslnie 1 - user moze sam zmienic
+        header_row = 1
+
+    headers = [str(ws.cell(row=header_row, column=c).value or '').strip()
+               for c in range(1, (ws.max_column or 0) + 1)]
+    headers_display = [h or f'(kolumna {chr(64+i+1) if i < 26 else i+1})' for i, h in enumerate(headers)]
+
+    col_map = _auto_detect_columns(headers)
+
+    # Sample 5 wierszy danych
+    sample_rows = []
+    for r in range(header_row + 1, min(header_row + 30, (ws.max_row or 0) + 1)):
+        vals = [ws.cell(row=r, column=c).value for c in range(1, len(headers) + 1)]
+        if any(v is not None and str(v).strip() not in ('', '-') for v in vals):
+            sample_rows.append(vals)
+        if len(sample_rows) >= 5:
+            break
+
+    # Lista istniejacych palet (do fallback dropdown jak NR PALETY nie wykryta)
+    conn = get_db()
+    existing_palety = conn.execute(
+        'SELECT id, nazwa, dostawca FROM palety ORDER BY data_dodania DESC LIMIT 100'
+    ).fetchall()
+
+    wb.close()
+
+    # Render preview screen
+    # Dropdowny per role
+    role_rows = ''
+    for role_key, label, required, _keywords in _IMPORT_ROLES:
+        detected = col_map.get(role_key, -1)
+        opts = '<option value="-1">-- nie używaj --</option>'
+        for i, h in enumerate(headers_display):
+            sel = ' selected' if i == detected else ''
+            opts += f'<option value="{i}"{sel}>{_html_escape_safe(h)}</option>'
+        badge = ''
+        if detected >= 0:
+            badge = '<span style="color:#22c55e;font-size:0.78rem;font-weight:700;background:rgba(34,197,94,0.1);padding:2px 8px;border-radius:6px;margin-left:8px">✓ wykryto</span>'
+        else:
+            if required:
+                badge = '<span style="color:#ef4444;font-size:0.78rem;font-weight:700;background:rgba(239,68,68,0.1);padding:2px 8px;border-radius:6px;margin-left:8px">WYMAGANE</span>'
+            else:
+                badge = '<span style="color:#64748b;font-size:0.78rem;background:rgba(100,116,139,0.1);padding:2px 8px;border-radius:6px;margin-left:8px">nie znaleziono</span>'
+
+        # Pre-render markera wymaganego pola PRZED f-stringiem (Python 3.11
+        # nie pozwala backslash w f-string expression part)
+        required_marker = '  <span style="color:#ef4444">*</span>' if required else ''
+        role_rows += f'''
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div style="flex:0 0 220px;font-weight:600;color:#e2e8f0;font-size:0.88rem">
+                {label}{required_marker}
+                {badge}
+            </div>
+            <select name="col_{role_key}" style="flex:1;padding:8px 10px;background:#0f1019;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;font-size:0.85rem">
+                {opts}
+            </select>
+        </div>
+        '''
+
+    # Sample table
+    sample_thead = ''.join(f'<th style="padding:8px 10px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid rgba(143,245,255,0.15)">{_html_escape_safe(h)}</th>' for h in headers_display)
+    sample_tbody = ''
+    for r in sample_rows:
+        tds = ''.join(f'<td style="padding:8px 10px;color:#cbd5e1;font-size:0.82rem;border-bottom:1px solid rgba(255,255,255,0.03)">{_html_escape_safe(str(v) if v is not None else "")[:60]}</td>' for v in r)
+        sample_tbody += f'<tr>{tds}</tr>'
+
+    # Fallback paleta dropdown (jak NR PALETY nie wybrana)
+    fallback_palety_opts = '<option value="">-- nie wybieraj fallback (wymaga NR PALETY w pliku) --</option>'
+    for p in existing_palety:
+        fallback_palety_opts += f'<option value="{p[0]}">{_html_escape_safe(p[1] or f"Paleta #{p[0]}")}{f" ({_html_escape_safe(p[2])})" if p[2] else ""}</option>'
+
+    n_detected = sum(1 for v in col_map.values() if v >= 0)
+    n_total = len(_IMPORT_ROLES)
+
+    html = f'''
+    <div class="hdr"><h1><span class="material-symbols-outlined">tune</span> KROK 2/3: PODGLĄD I MAPOWANIE</h1>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">Sprawdź mapowanie kolumn ({n_detected}/{n_total} wykrytych auto) i popraw jeśli trzeba</div>
+    </div>
+
+    <form action="/magazyn/import-multi/execute" method="POST">
+        <input type="hidden" name="tmp_uuid" value="{tmp_uuid}">
+        <input type="hidden" name="sheet" value="{_html_escape_safe(target_sheet)}">
+
+        <div class="card" style="padding:16px 0;margin-bottom:14px">
+            <div style="padding:0 14px 14px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,0.06)">
+                <span class="material-symbols-outlined" style="color:#8ff5ff">tab</span>
+                <div style="font-weight:700;color:#8ff5ff">Arkusz: <code>{_html_escape_safe(target_sheet)}</code></div>
+                <div style="margin-left:auto;font-size:0.8rem;color:#64748b">Wykryto nagłówek w wierszu:
+                    <input type="number" name="header_row" value="{header_row}" min="1" max="50" style="width:60px;padding:4px 6px;background:#0f1019;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;text-align:center">
+                </div>
+            </div>
+            {role_rows}
+        </div>
+
+        <div class="card" style="padding:14px;margin-bottom:14px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15)">
+            <div style="font-weight:700;color:#8ff5ff;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">inventory_2</span> Fallback: jeśli NR PALETY nie wybrana</div>
+            <div style="font-size:0.82rem;color:#94a3b8;margin-bottom:8px">Wszystkie produkty trafią do tej palety (możesz wybrać istniejącą lub zostawić puste żeby wymagać NR PALETY w pliku):</div>
+            <select name="fallback_paleta_id" style="width:100%;padding:8px 10px;background:#0f1019;border:1px solid #2d3748;border-radius:6px;color:#e2e8f0;font-size:0.85rem">
+                {fallback_palety_opts}
+            </select>
+        </div>
+
+        <div class="card" style="padding:0;margin-bottom:14px;overflow:hidden">
+            <div style="padding:12px 14px;background:rgba(190,238,0,0.06);border-bottom:1px solid rgba(190,238,0,0.15);font-weight:700;color:#beee00">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">table_chart</span>
+                Podgląd: pierwsze {len(sample_rows)} wierszy danych
+            </div>
+            <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+                    <thead><tr>{sample_thead}</tr></thead>
+                    <tbody>{sample_tbody}</tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+            <button type="submit" class="btn btn-ok" style="padding:14px 26px;font-size:0.95rem;font-weight:700">
+                <span class="material-symbols-outlined" style="font-size:1.1rem;vertical-align:middle">check_circle</span> POTWIERDŹ I IMPORTUJ
+            </button>
+            <a href="/magazyn/import-multi" class="btn btn-2" style="padding:14px 22px">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">arrow_back</span> Anuluj / inny plik
+            </a>
+        </div>
+    </form>
+    '''
+    return render(html)
+
+
+@magazynier_bp.route('/import-multi/execute', methods=['POST'])
+def import_multi_execute():
+    """KROK 3: Wykonaj import z mapping kolumn przekazanych z preview."""
+    tmp_uuid = request.form.get('tmp_uuid', '').strip()
+    target_sheet = request.form.get('sheet', '').strip()
+    try:
+        header_row = int(request.form.get('header_row', '1'))
+    except Exception:
+        header_row = 1
+    fallback_paleta_id_raw = request.form.get('fallback_paleta_id', '').strip()
+    try:
+        fallback_paleta_id = int(fallback_paleta_id_raw) if fallback_paleta_id_raw else None
+    except Exception:
+        fallback_paleta_id = None
+
+    # Walidacja uuid (tylko safe chars)
+    import re
+    if not tmp_uuid or not re.match(r'^[A-Za-z0-9_-]+$', tmp_uuid):
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nieprawidłowy UUID — wgraj plik ponownie</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    tmp_path = _import_tmp_dir() / f'{tmp_uuid}.xlsx'
+    if not tmp_path.exists():
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Plik tymczasowy nie istnieje (wygasł albo Pi się zrestartowało). Wgraj plik ponownie.</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+
+    # Zbierz col_map z form
+    col_map = {}
+    for role_key, _label, _required, _kws in _IMPORT_ROLES:
+        raw = request.form.get(f'col_{role_key}', '-1')
+        try:
+            col_map[role_key] = int(raw)
+        except Exception:
+            col_map[role_key] = -1
+
+    # Sprawdz wymagane
+    for role_key, label, required, _kws in _IMPORT_ROLES:
+        if required and col_map[role_key] < 0:
+            return render(f'<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Kolumna "{label}" jest wymagana — wybierz ją z dropdownu</div><a href="javascript:history.back()" class="back">← Wstecz</a>')
+
+    # Sprawdz czy NR PALETY albo fallback
+    if col_map['nr_paleta'] < 0 and not fallback_paleta_id:
+        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrałeś kolumny NR PALETY ani fallback palety. Wszystkie produkty trafiłyby donikąd. Wróć i wybierz jedno z nich.</div><a href="javascript:history.back()" class="back">← Wstecz</a>')
+
+    import openpyxl
+    try:
+        wb = openpyxl.load_workbook(str(tmp_path), data_only=True)
+        if target_sheet and target_sheet in wb.sheetnames:
+            ws = wb[target_sheet]
+        else:
+            ws = wb.active
+
+        conn = get_db()
+        palety_cache = {}
+        palety_stats = {}
+        added_total = 0
+        skipped_no_data = 0
+        skipped_header_repeat = 0
+        errors = []
+
+        # Jak fallback paleta wybrana - dolacz ja do statystyk od razu
+        if fallback_paleta_id:
+            row = conn.execute('SELECT id, nazwa, dostawca FROM palety WHERE id = ?', (fallback_paleta_id,)).fetchone()
+            if row:
+                palety_stats[row[0]] = {
+                    'nazwa': row[1] or f'Paleta #{row[0]}',
+                    'dostawca': row[2] or '',
+                    'count': 0, 'sprzedane': 0, 'magazyn': 0, 'uszkodzone': 0,
+                    '_existing': True,
+                }
+
+        for row_idx, row in enumerate(ws.iter_rows(min_row=header_row + 1, values_only=True), start=header_row + 1):
+            parsed = _parse_row_with_mapping(row, col_map, row_idx)
+            if not parsed:
+                continue
+            if '_skip_reason' in parsed:
+                if parsed['_skip_reason'] == 'header_repeat':
+                    skipped_header_repeat += 1
+                else:
+                    skipped_no_data += 1
+                continue
+
+            try:
+                # Decyzja o palecie
+                nr_p = parsed['nr_paleta']
+                if nr_p:
+                    if nr_p not in palety_cache:
+                        dostawca = _parse_paleta_url_to_dostawca(parsed['paleta_url'])
+                        new_pid = _find_or_create_paleta(conn, nr_p, dostawca)
+                        palety_cache[nr_p] = new_pid
+                        if new_pid not in palety_stats:
+                            palety_stats[new_pid] = {
+                                'nazwa': nr_p, 'dostawca': dostawca,
+                                'count': 0, 'sprzedane': 0, 'magazyn': 0, 'uszkodzone': 0,
+                            }
+                    target_pid = palety_cache[nr_p]
+                    paleta_label = nr_p
+                elif fallback_paleta_id:
+                    target_pid = fallback_paleta_id
+                    paleta_label = palety_stats[target_pid]['nazwa']
+                else:
+                    skipped_no_data += 1
+                    continue
+
+                stan = _map_excel_stan_to_system(parsed['stan_raw'])
+                status = _map_excel_status_to_system(parsed['status_raw'])
+                cena_netto = parsed['cena_netto']
+                cena_brutto = round(cena_netto * 1.23, 2) if cena_netto > 0 else 0
+
+                conn.execute(
+                    """INSERT INTO produkty
+                       (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
+                        dostawca, paleta_id, paleta, stan, status, opis_ai)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (parsed['ean'], parsed['asin'], parsed['nazwa'], parsed['ilosc'],
+                     cena_netto, cena_brutto, parsed['cena_allegro'],
+                     palety_stats[target_pid]['dostawca'],
+                     target_pid, paleta_label, stan, status, parsed['info'])
+                )
+                added_total += 1
+                palety_stats[target_pid]['count'] += 1
+                if status == 'sprzedany':
+                    palety_stats[target_pid]['sprzedane'] += 1
+                elif status == 'uszkodzony':
+                    palety_stats[target_pid]['uszkodzone'] += 1
+                else:
+                    palety_stats[target_pid]['magazyn'] += 1
+            except Exception as row_err:
+                errors.append(f'Wiersz {row_idx}: {str(row_err)[:120]}')
+
+        # Update ilosc_produktow per paleta (tylko NOWE palety, nie ruszamy fallback existing)
+        for pid, stats in palety_stats.items():
+            if stats.get('_existing'):
+                # Dla istniejacej palety dodaj do biezacej liczby
+                try:
+                    conn.execute('UPDATE palety SET ilosc_produktow = ilosc_produktow + ? WHERE id = ?',
+                                 (stats['count'], pid))
+                except Exception as e:
+                    errors.append(f'Update palety #{pid}: {str(e)[:80]}')
+            else:
+                try:
+                    conn.execute('UPDATE palety SET ilosc_produktow = ? WHERE id = ?',
+                                 (stats['count'], pid))
+                except Exception as e:
+                    errors.append(f'Update palety #{pid}: {str(e)[:80]}')
+
+        conn.commit()
+        wb.close()
+    except Exception as e:
+        return render(f'<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">{str(e)[:300]}</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+    finally:
+        # Cleanup tmp file
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+    # Render podsumowania (jak w starej wersji)
+    palety_rows = ''
+    total_sold = 0
+    total_mag = 0
+    total_dmg = 0
+    for pid, stats in palety_stats.items():
+        if stats['count'] == 0:
+            continue
+        total_sold += stats['sprzedane']
+        total_mag += stats['magazyn']
+        total_dmg += stats['uszkodzone']
+        dost = stats['dostawca'] or '—'
+        palety_rows += (
+            f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+            f'<td style="padding:10px 12px"><a href="/palety/{pid}" style="color:#8ff5ff;font-weight:600;text-decoration:none">{_html_escape_safe(stats["nazwa"])}</a></td>'
+            f'<td style="padding:10px 12px;color:#94a3b8">{_html_escape_safe(dost)}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#beee00;font-weight:700">{stats["count"]}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#22c55e">{stats["sprzedane"]}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#8ff5ff">{stats["magazyn"]}</td>'
+            f'<td style="padding:10px 12px;text-align:center;color:#ef4444">{stats["uszkodzone"]}</td>'
+            f'</tr>'
+        )
+
+    n_palet = sum(1 for s in palety_stats.values() if s['count'] > 0)
+    err_block = ''
+    if errors:
+        err_lines = '<br>'.join(_html_escape_safe(e) for e in errors[:15])
+        err_block = (
+            f'<div class="alert alert-warn" style="margin-top:14px">'
+            f'<b>Błędy ({len(errors)}):</b><br>{err_lines}'
+            + (f'<br>... +{len(errors)-15} kolejnych' if len(errors) > 15 else '')
+            + '</div>'
+        )
+
+    html = f'''
+    <div class="hdr"><h1><span class="material-symbols-outlined">check_circle</span> KROK 3/3: IMPORT ZAKOŃCZONY</h1></div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#8ff5ff">{n_palet}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">palety</div></div>
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#beee00">{added_total}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">produktów</div></div>
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#22c55e">{total_sold}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">sprzedanych</div></div>
+        <div class="card" style="padding:14px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:#8ff5ff">{total_mag}</div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">w magazynie</div></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+            <thead><tr style="background:rgba(143,245,255,0.06)">
+                <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Paleta</th>
+                <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Dostawca</th>
+                <th style="padding:10px 12px;text-align:center;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Razem</th>
+                <th style="padding:10px 12px;text-align:center;color:#22c55e;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Sprzedane</th>
+                <th style="padding:10px 12px;text-align:center;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Magazyn</th>
+                <th style="padding:10px 12px;text-align:center;color:#ef4444;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Uszkodzone</th>
+            </tr></thead>
+            <tbody>{palety_rows}</tbody>
+        </table>
+    </div>
+
+    <div style="margin-top:12px;font-size:0.78rem;color:#64748b">
+        Pominięto {skipped_no_data} pustych/niepełnych wierszy, {skipped_header_repeat} powtórzonych nagłówków.
+    </div>
+
+    {err_block}
+
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <a href="/magazyn/import-multi" class="btn btn-p"><span class="material-symbols-outlined">download</span> Importuj kolejny plik</a>
+        <a href="/magazyn/palety" class="btn btn-2"><span class="material-symbols-outlined">view_module</span> Zobacz palety</a>
+        <a href="/magazyn" class="back">← Magazyn</a>
+    </div>
+    '''
+    return render(html)
+
+
+def _html_escape_safe(s):
+    """Bezpieczna escape HTML dla wartosci ktore moga miec <>& itp."""
+    if s is None:
+        return ''
+    return (str(s)
+            .replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+            .replace('"', '&quot;')
+            .replace("'", '&#39;'))
 
 
 def _parse_paleta_url_to_dostawca(url):
@@ -6550,11 +7132,15 @@ def _map_excel_stan_to_system(excel_stan):
     return 'Nowy'
 
 
-@magazynier_bp.route('/import-multi/upload', methods=['POST'])
-def import_multi_upload():
-    """Parser multi-paleta z auto-create palet."""
-    if 'file' not in request.files:
-        return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Nie wybrano pliku</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
+# NOTE: stary endpoint /import-multi/upload (auto-import bez preview) zostal
+# zastapiony 3-krokowym wizardem: /import-multi -> /preview -> /execute.
+# Logika multi-paleta auto-create palet jest teraz w import_multi_execute().
+
+
+@magazynier_bp.route('/__obsolete_import_multi_upload_removed__', methods=['POST'])
+def _import_multi_upload_removed():
+    """Zostal usuniety - patrz import_multi_preview + import_multi_execute."""
+    return render('<div class="hdr"><h1><span class="material-symbols-outlined">cancel</span> BŁĄD</h1></div><div class="alert alert-err">Ten endpoint zostal usuniety. Uzyj /magazyn/import-multi (nowy 3-krokowy wizard).</div><a href="/magazyn/import-multi" class="back">← Powrót</a>')
 
     file = request.files['file']
     if not file.filename or not file.filename.lower().endswith('.xlsx'):
