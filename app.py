@@ -5153,6 +5153,281 @@ def narzedzia_fix_currency():
     })
 
 
+# ════════════════════════════════════════════════════════════════════════
+# DIAGNOZA CEN SPRZEDAZY - znalezienie suspicious rekordow (np × 100 bugi)
+# ════════════════════════════════════════════════════════════════════════
+
+@app.route('/narzedzia/diagnoza-cen', methods=['GET'])
+@require_admin
+def narzedzia_diagnoza_cen():
+    """Pokazuje TOP10 wysokich + niskich cen + suspicious + statystyki.
+
+    Suspicious = cena > 5000 zł (potencjalne ×100 bugi, np 468.70 -> 46870).
+    Plus mediana referencyjna dla porownania.
+    """
+    from modules.database import get_db
+    conn = get_db()
+
+    # Statystyki ogolne
+    stats = conn.execute('''
+        SELECT COUNT(*) as cnt,
+               MIN(cena) as min_cena, MAX(cena) as max_cena,
+               AVG(cena) as avg_cena
+        FROM sprzedaze WHERE cena IS NOT NULL AND cena > 0
+    ''').fetchone()
+
+    # Mediana (SQLite nie ma percentile, robimy przez ORDER BY + LIMIT)
+    median_row = conn.execute('''
+        SELECT cena FROM sprzedaze WHERE cena > 0
+        ORDER BY cena LIMIT 1 OFFSET (SELECT COUNT(*)/2 FROM sprzedaze WHERE cena > 0)
+    ''').fetchone()
+    median = median_row['cena'] if median_row else 0
+
+    # TOP10 najwyzszych cen
+    top_high = conn.execute('''
+        SELECT id, substr(nazwa,1,60) as nazwa, cena, ilosc,
+               cena * ilosc as total, data_sprzedazy, status, allegro_order_id
+        FROM sprzedaze WHERE cena > 0
+        ORDER BY cena DESC LIMIT 10
+    ''').fetchall()
+
+    # TOP10 najnizszych cen (NIE 0)
+    top_low = conn.execute('''
+        SELECT id, substr(nazwa,1,60) as nazwa, cena, ilosc, data_sprzedazy
+        FROM sprzedaze WHERE cena > 0
+        ORDER BY cena ASC LIMIT 10
+    ''').fetchall()
+
+    # Suspicious (cena > 5000 zł) - potencjalne ×100 bugi
+    suspicious_rows = conn.execute('''
+        SELECT id, substr(nazwa,1,60) as nazwa, cena, ilosc,
+               data_sprzedazy, status, allegro_order_id
+        FROM sprzedaze WHERE cena > 5000
+        ORDER BY cena DESC LIMIT 50
+    ''').fetchall()
+
+    def _row_html(row, suspicious=False):
+        suspicious_badge = ''
+        if suspicious or (row['cena'] or 0) > 5000:
+            div100 = (row['cena'] or 0) / 100
+            suspicious_badge = (
+                f'<span style="background:rgba(239,68,68,0.15);color:#ef4444;'
+                f'padding:2px 6px;border-radius:4px;font-size:0.7rem;margin-left:6px">'
+                f'÷100 = {div100:.2f} zł</span>'
+            )
+        return (
+            f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+            f'<td style="padding:8px 10px;color:#64748b;font-family:monospace;font-size:0.78rem">#{row["id"]}</td>'
+            f'<td style="padding:8px 10px;color:#cbd5e1;font-size:0.82rem">{(row["nazwa"] or "")}</td>'
+            f'<td style="padding:8px 10px;text-align:right;color:#beee00;font-weight:700;font-family:monospace">{(row["cena"] or 0):,.2f} zł{suspicious_badge}</td>'
+            f'<td style="padding:8px 10px;text-align:center;color:#94a3b8">{row.get("ilosc") if hasattr(row, "get") else row["ilosc"]}</td>'
+            f'<td style="padding:8px 10px;color:#64748b;font-size:0.78rem">{(row["data_sprzedazy"] or "")[:16]}</td>'
+            f'</tr>'
+        )
+
+    def _safe_get(row, key, default=''):
+        try:
+            return row[key]
+        except (KeyError, IndexError):
+            return default
+
+    def _row_html_safe(row, suspicious=False):
+        cena = _safe_get(row, 'cena', 0) or 0
+        suspicious_badge = ''
+        if suspicious or cena > 5000:
+            suspicious_badge = (
+                f'<span style="background:rgba(239,68,68,0.15);color:#ef4444;'
+                f'padding:2px 6px;border-radius:4px;font-size:0.7rem;margin-left:6px">'
+                f'÷100 = {cena/100:.2f} zł</span>'
+            )
+        return (
+            f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+            f'<td style="padding:8px 10px;color:#64748b;font-family:monospace;font-size:0.78rem">#{_safe_get(row, "id")}</td>'
+            f'<td style="padding:8px 10px;color:#cbd5e1;font-size:0.82rem">{_safe_get(row, "nazwa", "")}</td>'
+            f'<td style="padding:8px 10px;text-align:right;color:#beee00;font-weight:700;font-family:monospace">{cena:,.2f} zł{suspicious_badge}</td>'
+            f'<td style="padding:8px 10px;text-align:center;color:#94a3b8">{_safe_get(row, "ilosc", "")}</td>'
+            f'<td style="padding:8px 10px;color:#64748b;font-size:0.78rem">{str(_safe_get(row, "data_sprzedazy", ""))[:16]}</td>'
+            f'</tr>'
+        )
+
+    rows_high = ''.join(_row_html_safe(r) for r in top_high)
+    rows_low = ''.join(_row_html_safe(r) for r in top_low)
+    rows_suspicious = ''.join(_row_html_safe(r, suspicious=True) for r in suspicious_rows)
+
+    n_suspicious = len(suspicious_rows)
+
+    suspicious_section = ''
+    if n_suspicious > 0:
+        suspicious_section = f'''
+        <div class="card" style="padding:0;margin-top:18px;overflow:hidden;border:1px solid rgba(239,68,68,0.3)">
+            <div style="padding:14px 18px;background:rgba(239,68,68,0.08);border-bottom:1px solid rgba(239,68,68,0.2)">
+                <div style="font-weight:700;color:#ef4444;font-size:0.95rem">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">warning</span>
+                    {n_suspicious} suspicious rekordow (cena > 5000 zł)
+                </div>
+                <div style="font-size:0.8rem;color:#94a3b8;margin-top:4px">
+                    Potencjalne ×100 bugi — w czerwonym badge proponowana wartość po podzieleniu przez 100.
+                    Jeśli realne ceny były ~50-500 zł a tutaj są 5000-50000 zł, to bug.
+                </div>
+            </div>
+            <div style="overflow-x:auto;max-height:500px;overflow-y:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+                    <thead style="position:sticky;top:0;background:#0f1019">
+                        <tr>
+                            <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">ID</th>
+                            <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Nazwa</th>
+                            <th style="padding:10px 12px;text-align:right;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Cena</th>
+                            <th style="padding:10px 12px;text-align:center;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Ilosc</th>
+                            <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>{rows_suspicious}</tbody>
+                </table>
+            </div>
+            <div style="padding:14px 18px;border-top:1px solid rgba(239,68,68,0.2);background:rgba(0,0,0,0.2)">
+                <form method="POST" action="/narzedzia/diagnoza-cen/napraw" onsubmit="return confirm('Podzielic {n_suspicious} rekordow przez 100? OPERACJA NIEODWRACALNA bez backupu DB!\\n\\nKliknij Anuluj jesli ceny SA prawidlowe (drogie produkty).');">
+                    <input type="hidden" name="csrf_token" value="{generate_csrf()}">
+                    <button type="submit" style="padding:10px 22px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.88rem">
+                        <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">build</span>
+                        Napraw - podziel wszystkie przez 100
+                    </button>
+                </form>
+            </div>
+        </div>
+        '''
+    else:
+        suspicious_section = '''
+        <div class="card" style="padding:18px;margin-top:18px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.3)">
+            <div style="color:#22c55e;font-weight:700">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">check_circle</span>
+                Brak suspicious rekordow (cena > 5000 zł).
+            </div>
+            <div style="font-size:0.82rem;color:#94a3b8;margin-top:4px">
+                Wszystkie ceny w bazie sa w rozsadnym zakresie - prawdopodobnie nie ma bugu ×100.
+            </div>
+        </div>
+        '''
+
+    html = f'''
+    <div class="hdr"><h1><span class="material-symbols-outlined">price_check</span> DIAGNOZA CEN SPRZEDAŻY</h1>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">Statystyki + TOP10 najwyzsze/najnizsze + suspicious (potencjalne ×100 bugi)</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px">
+        <div class="card" style="padding:14px;text-align:center">
+            <div style="font-size:1.5rem;font-weight:800;color:#8ff5ff">{stats['cnt']}</div>
+            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">sprzedaży</div>
+        </div>
+        <div class="card" style="padding:14px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:#beee00">{(stats['min_cena'] or 0):,.2f} zł</div>
+            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">min cena</div>
+        </div>
+        <div class="card" style="padding:14px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:#22c55e">{median:,.2f} zł</div>
+            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">mediana</div>
+        </div>
+        <div class="card" style="padding:14px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:#a78bfa">{(stats['avg_cena'] or 0):,.2f} zł</div>
+            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">średnia</div>
+        </div>
+        <div class="card" style="padding:14px;text-align:center">
+            <div style="font-size:1.4rem;font-weight:800;color:#ef4444">{(stats['max_cena'] or 0):,.2f} zł</div>
+            <div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">max cena</div>
+        </div>
+    </div>
+
+    {suspicious_section}
+
+    <div class="card" style="padding:0;margin-top:18px;overflow:hidden">
+        <div style="padding:14px 18px;background:rgba(143,245,255,0.06);border-bottom:1px solid rgba(143,245,255,0.15)">
+            <div style="font-weight:700;color:#8ff5ff;font-size:0.95rem">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_up</span>
+                TOP 10 najwyższych cen
+            </div>
+        </div>
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+                <thead><tr>
+                    <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">ID</th>
+                    <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Nazwa</th>
+                    <th style="padding:10px 12px;text-align:right;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Cena</th>
+                    <th style="padding:10px 12px;text-align:center;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Ilość</th>
+                    <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Data</th>
+                </tr></thead>
+                <tbody>{rows_high}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="padding:0;margin-top:18px;overflow:hidden">
+        <div style="padding:14px 18px;background:rgba(143,245,255,0.06);border-bottom:1px solid rgba(143,245,255,0.15)">
+            <div style="font-weight:700;color:#8ff5ff;font-size:0.95rem">
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">trending_down</span>
+                TOP 10 najniższych cen
+            </div>
+        </div>
+        <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+                <thead><tr>
+                    <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">ID</th>
+                    <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Nazwa</th>
+                    <th style="padding:10px 12px;text-align:right;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Cena</th>
+                    <th style="padding:10px 12px;text-align:center;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Ilość</th>
+                    <th style="padding:10px 12px;text-align:left;color:#8ff5ff;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Data</th>
+                </tr></thead>
+                <tbody>{rows_low}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="margin-top:18px"><a href="/narzedzia" class="back">← Narzędzia</a></div>
+    '''
+
+    return render_template_string('''{% extends "base.html" %}
+{% block page_title %}Diagnoza cen{% endblock %}
+{% block content %}
+<div style="max-width:1280px;margin:auto;padding:20px">
+''' + html + '''
+</div>
+{% endblock %}''')
+
+
+@app.route('/narzedzia/diagnoza-cen/napraw', methods=['POST'])
+@require_admin
+def narzedzia_diagnoza_cen_napraw():
+    """Dziel wszystkie suspicious (cena > 5000) przez 100. NIEODWRACALNE bez backupu DB."""
+    _validate_csrf_or_abort()
+    from modules.database import get_db
+    conn = get_db()
+
+    # Pobierz suspicious i dziel
+    rows = conn.execute('SELECT id, cena FROM sprzedaze WHERE cena > 5000').fetchall()
+    fixed = 0
+    for row in rows:
+        try:
+            new_cena = round(row['cena'] / 100, 2)
+            conn.execute('UPDATE sprzedaze SET cena = ? WHERE id = ?', (new_cena, row['id']))
+            fixed += 1
+        except Exception:
+            pass
+    conn.commit()
+
+    msg = f'Naprawiono {fixed} rekordów (cena podzielona przez 100).'
+    inner_html = f'''
+    <div class="hdr"><h1><span class="material-symbols-outlined">check_circle</span> NAPRAWIONO</h1></div>
+    <div class="alert alert-ok" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#22c55e;padding:14px 18px;border-radius:10px;margin:18px 0">{msg}</div>
+    <a href="/narzedzia/diagnoza-cen" class="btn btn-p">Sprawdź ponownie</a>
+    <a href="/narzedzia" class="back" style="margin-left:8px">← Narzędzia</a>
+    '''
+    return render_template_string('''{% extends "base.html" %}
+{% block page_title %}Naprawiono{% endblock %}
+{% block content %}
+<div style="max-width:900px;margin:auto;padding:20px">
+''' + inner_html + '''
+</div>
+{% endblock %}''')
+
+
 @app.route('/narzedzia/export', methods=['GET', 'POST'])
 def narzedzia_export():
     if request.method == 'POST':
