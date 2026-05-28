@@ -2842,6 +2842,13 @@ def system_update():
             'pull_output': pull_output[:500],
             'restart': True,
         }, success=True)
+        # FIX 2026-05-28: po udanym git pull wyczysc banner update_available
+        # (analogicznie do already_up_to_date). Bez tego banner wisi do
+        # nastepnego background check (max 120s + restart).
+        try:
+            set_config('update_available', '0')
+        except Exception:
+            pass
         threading.Thread(target=_delayed_restart, daemon=True).start()
         return jsonify({'ok': True, 'msg': f'Zaktualizowano! {pull_output[:100]}. Restart za chwilę...'})
     except subprocess.TimeoutExpired:
