@@ -7039,6 +7039,16 @@ def import_multi_execute():
                     ilosc_w_magazynie = max(0, ilosc_total - ilosc_sprzedanych)
                     ilosc_historycznie_sprzedanych = ilosc_sprzedanych
 
+                # FIX 2026-05-28: Amazon image URL bezposrednio jako fallback.
+                # Tylko URL string - browser sam zaladuje obraz przy renderowaniu UI
+                # (zero HTTP fetch tutaj, zero zwolnienia importu).
+                # Klient pozniej moze odpalic /magazyn/fetch-images zeby cache lokalnie.
+                _zdjecie_url = ''
+                if parsed['asin']:
+                    _asin_clean = str(parsed['asin']).strip().upper()
+                    if len(_asin_clean) >= 8:
+                        _zdjecie_url = f'https://m.media-amazon.com/images/I/{_asin_clean}._AC_SL1500_.jpg'
+
                 # GLOWNY rekord: aktualny stan magazynu (status z mappingu)
                 # Jesli ilosc_w_magazynie=0 ale status='magazyn' -> oznacz jako 'sprzedany'
                 # zeby NIE liczyc do magazynu (i nie probowac wystawiac).
@@ -7048,12 +7058,13 @@ def import_multi_execute():
                 conn.execute(
                     """INSERT INTO produkty
                        (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
-                        dostawca, paleta_id, paleta, stan, status, opis_ai)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        dostawca, paleta_id, paleta, stan, status, opis_ai, zdjecie_url)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (parsed['ean'], parsed['asin'], parsed['nazwa'], ilosc_w_magazynie,
                      cena_netto, cena_brutto, parsed['cena_allegro'],
                      palety_stats[target_pid]['dostawca'],
-                     target_pid, paleta_label, stan, _effective_status, parsed['info'])
+                     target_pid, paleta_label, stan, _effective_status, parsed['info'],
+                     _zdjecie_url)
                 )
                 added_total += 1
                 palety_stats[target_pid]['count'] += 1
@@ -7068,13 +7079,14 @@ def import_multi_execute():
                     conn.execute(
                         """INSERT INTO produkty
                            (ean, asin, nazwa, ilosc, cena_netto, cena_brutto, cena_allegro,
-                            dostawca, paleta_id, paleta, stan, status, opis_ai)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            dostawca, paleta_id, paleta, stan, status, opis_ai, zdjecie_url)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (parsed['ean'], parsed['asin'], parsed['nazwa'],
                          ilosc_historycznie_sprzedanych,
                          cena_netto, cena_brutto, parsed['cena_allegro'],
                          palety_stats[target_pid]['dostawca'],
-                         target_pid, paleta_label, stan, 'sprzedany', _info_hist[:500])
+                         target_pid, paleta_label, stan, 'sprzedany', _info_hist[:500],
+                         _zdjecie_url)
                     )
                     added_total += 1
                     palety_stats[target_pid]['count'] += 1

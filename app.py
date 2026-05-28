@@ -5293,6 +5293,42 @@ def narzedzia_fix_currency():
 
 
 # ════════════════════════════════════════════════════════════════════════
+# UZUPEŁNIJ ZDJECIA AMAZON dla produktów z ASIN ale bez zdjecie_url
+# ════════════════════════════════════════════════════════════════════════
+
+@app.route('/narzedzia/uzupelnij-zdjecia-amazon', methods=['POST'])
+@require_admin
+def narzedzia_uzupelnij_zdjecia_amazon():
+    """Wszystkim produktom z ASIN ale pustym zdjecie_url podstaw URL Amazon.
+
+    NIE pobiera plików - tylko wstawia URL. Browser przy renderowaniu UI
+    automatycznie zaladuje obraz z Amazon CDN. Wykonuje sie natychmiast
+    (jeden UPDATE), niezaleznie od liczby produktów.
+    """
+    _validate_csrf_or_abort()
+    from modules.database import get_db
+    conn = get_db()
+    try:
+        result = conn.execute("""
+            UPDATE produkty
+            SET zdjecie_url = 'https://m.media-amazon.com/images/I/' || UPPER(TRIM(asin)) || '._AC_SL1500_.jpg'
+            WHERE (zdjecie_url IS NULL OR zdjecie_url = '')
+              AND asin IS NOT NULL AND TRIM(asin) != ''
+              AND LENGTH(TRIM(asin)) >= 8
+              AND TRIM(UPPER(asin)) NOT IN ('NONE', 'NAN', 'N/A')
+        """)
+        updated = result.rowcount
+        conn.commit()
+        return jsonify({
+            'ok': True,
+            'updated': updated,
+            'msg': f'Uzupełniono {updated} produktów'
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)[:200]})
+
+
+# ════════════════════════════════════════════════════════════════════════
 # DIAGNOZA CEN SPRZEDAZY - znalezienie suspicious rekordow (np × 100 bugi)
 # ════════════════════════════════════════════════════════════════════════
 
