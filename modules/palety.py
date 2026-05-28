@@ -1,4 +1,4 @@
-"""
+﻿"""
 Moduł palet — routes dla /palety/*, /produkt/* (edycja), /produkty/* (meta)
 """
 from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app, render_template, render_template_string
@@ -1131,7 +1131,7 @@ def przelicz_brutto_palet():
             stara_cena = p['cena_zakupu'] or 0
             conn.execute('UPDATE palety SET cena_zakupu = ?, cena_zakupu_netto = ? WHERE id = ?', (suma_brutto, suma_netto, p['id']))
             updated += 1
-            print(f"[CHECK_CIRCLE] Paleta {p['id']}: {p['nazwa']} -> {stara_cena:.0f} → {suma_brutto:.0f} zł brutto")
+            print(f"[CHECK_CIRCLE] Paleta {p['id']}: {p['nazwa']} -> {stara_cena:.0f} → {suma_brutto:,.0f} zł brutto")
 
     conn.commit()
 
@@ -1242,7 +1242,7 @@ def palety_lista():
                     </div>
                 </div>
                 <div style="text-align:right">
-                    <div style="font-weight:600;color:var(--red)">{koszt_palety:.0f} zł</div>
+                    <div style="font-weight:600;color:var(--red)">{koszt_palety:,.0f} zł</div>
                     <div style="font-size:0.75rem;color:var(--text-muted)">{p['produktow']} prod.</div>
                 </div>
             </div>
@@ -1260,8 +1260,8 @@ def palety_lista():
             </div>
 
             <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:0.75rem">
-                <span style="color:var(--red)"><span class=material-symbols-outlined>paid</span> Zakup: {koszt_palety:.0f} zł</span>
-                <span style="color:var(--green)">Detal: {p['wartosc_detalu']:.0f} zł</span>
+                <span style="color:var(--red)"><span class=material-symbols-outlined>paid</span> Zakup: {koszt_palety:,.0f} zł</span>
+                <span style="color:var(--green)">Detal: {p['wartosc_detalu']:,.0f} zł</span>
             </div>
             <a href="/palety/{p['id']}" style="display:block;text-align:center;color:var(--blue);margin-top:8px;font-size:0.8rem;text-decoration:none">Szczegóły →</a>
         </div>
@@ -3014,7 +3014,7 @@ def paleta_mass_edit(paleta_id):
             <div class="bl-stat-label">Zaznaczone</div>
         </div>
         <div class="bl-stat">
-            <div class="bl-stat-num" style="color:#22c55e" id="value-total">{stats['wartosc_total']:.0f} zł</div>
+            <div class="bl-stat-num" style="color:#22c55e" id="value-total">{stats['wartosc_total']:,.0f} zł</div>
             <div class="bl-stat-label">Wartość</div>
         </div>
     </div>
@@ -3359,7 +3359,7 @@ def api_update_price():
         # Dodaj do historii jeśli cena się zmieniła
         if old_price != new_price:
             from modules.database import add_historia
-            add_historia(product_id, 'zmiana_ceny', f'Zmiana ceny Allegro: {old_price:.0f} → {new_price:.0f} zł',
+            add_historia(product_id, 'zmiana_ceny', f'Zmiana ceny Allegro: {old_price:.0f} → {new_price:,.0f} zł',
                 {'stara_cena': old_price, 'nowa_cena': new_price})
 
         product = conn.execute('SELECT paleta_id FROM produkty WHERE id = ?', (product_id,)).fetchone()
@@ -3853,11 +3853,11 @@ def _paleta_szczegoly_legacy(paleta_id):
         </div>
         <div class="sale-grid">
             <div class="sale-cell">
-                <div class="sale-cell-val" style="color:var(--green)">{przychod_rzeczywisty:.0f} zł</div>
+                <div class="sale-cell-val" style="color:var(--green)">{przychod_rzeczywisty:,.0f} zł</div>
                 <div class="sale-cell-lbl">PRZYCHÓD</div>
             </div>
             <div class="sale-cell">
-                <div class="sale-cell-val" style="color:var(--red)">-{koszt_sprzedanych:.0f} zł</div>
+                <div class="sale-cell-val" style="color:var(--red)">-{koszt_sprzedanych:,.0f} zł</div>
                 <div class="sale-cell-lbl">KOSZT</div>
             </div>
             <div class="sale-cell">
@@ -3869,15 +3869,15 @@ def _paleta_szczegoly_legacy(paleta_id):
 
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:15px">
         <div class="paleta-stats-box">
-            <div class="paleta-stats-num" style="color:var(--orange)">{koszt_palety_netto:.0f} zł</div>
+            <div class="paleta-stats-num" style="color:var(--orange)">{koszt_palety_netto:,.0f} zł</div>
             <div class="paleta-stats-label">KOSZT NETTO (STAŁY)</div>
         </div>
         <div class="paleta-stats-box">
-            <div class="paleta-stats-num" style="color:var(--red)">{koszt_palety_brutto:.0f} zł</div>
+            <div class="paleta-stats-num" style="color:var(--red)">{koszt_palety_brutto:,.0f} zł</div>
             <div class="paleta-stats-label">KOSZT BRUTTO (STAŁY)</div>
         </div>
         <div class="paleta-stats-box">
-            <div class="paleta-stats-num" style="color:var(--green)">{stats['wartosc']:.0f} zł</div>
+            <div class="paleta-stats-num" style="color:var(--green)">{stats['wartosc']:,.0f} zł</div>
             <div class="paleta-stats-label">WARTOŚĆ ALLEGRO</div>
         </div>
         <div class="paleta-stats-box">

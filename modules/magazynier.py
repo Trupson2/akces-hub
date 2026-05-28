@@ -1,4 +1,4 @@
-"""
+﻿"""
 Magazynier module - zarządzanie stanami magazynowymi
 """
 
@@ -1126,7 +1126,7 @@ def produkty():
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:flex-end">
                         <div>
-                            <div style="font-size:1.35rem;font-weight:900;color:{_price_color};font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em">{_ca:.0f} zł</div>
+                            <div style="font-size:1.35rem;font-weight:900;color:{_price_color};font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em">{_ca:,.0f} zł</div>
                             <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
                                 {_stock_dot}
                                 <span style="font-size:0.6rem;color:#adaaad;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">{_stock_text}</span>
@@ -1688,7 +1688,7 @@ def edytuj_produkt(code):
                 old_cena = existing['cena_allegro'] or 0
                 if old_cena != d['cena_allegro']:
                     add_historia(pid, 'zmiana_ceny',
-                        f'Cena: {old_cena:.0f} → {d["cena_allegro"]:.0f} zł',
+                        f'Cena: {old_cena:.0f} → {d["cena_allegro"]:,.0f} zł',
                         {'stara_cena': old_cena, 'nowa_cena': d['cena_allegro']})
                 else:
                     add_historia(pid, 'edytowano', 'Edytowano produkt', {'nazwa': d['nazwa']})
@@ -2000,13 +2000,13 @@ def sprzedaj_produkt(code):
             pass
 
         add_historia(p['id'], 'sprzedano',
-            f'Sprzedaz offline -1 szt. Pozostalo: {new_qty}. +{cena_szt:.0f} zl',
+            f'Sprzedaz offline -1 szt. Pozostalo: {new_qty}. +{cena_szt:,.0f} zl',
             {'poprzednia_ilosc': int(p['ilosc']), 'nowa_ilosc': new_qty,
              'stary_status': old_status, 'nowy_status': new_status,
              'cena_sprzedazy': cena_szt})
 
         if cena_szt > 0:
-            msg = f'<span class=material-symbols-outlined>check_circle</span> -1 szt. (+{cena_szt:.0f} zl) Pozostalo: {new_qty} szt'
+            msg = f'<span class=material-symbols-outlined>check_circle</span> -1 szt. (+{cena_szt:,.0f} zl) Pozostalo: {new_qty} szt'
         else:
             msg = f'<span class=material-symbols-outlined>check_circle</span> -1 szt. Pozostalo: {new_qty} szt'
     else:
@@ -2753,7 +2753,7 @@ def statystyki():
             f'<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #1e1e2e">'
             f'<div style="font-size:0.85rem;font-weight:700;color:#beee00;min-width:60px">{item["czas"]}</div>'
             f'<div style="flex:1;font-size:0.8rem;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{item["nazwa"]}</div>'
-            f'<div style="font-size:0.8rem;color:#eab308;min-width:55px;text-align:right">{item["cena"]:.0f} zł</div>'
+            f'<div style="font-size:0.8rem;color:#eab308;min-width:55px;text-align:right">{item["cena"]:,.0f} zł</div>'
             f'</div>' for item in najszybciej_sprzedane
         ])
         histogram_html = (
@@ -3047,7 +3047,7 @@ def statystyki():
     <div style="background:linear-gradient(135deg, {status_color}22, {status_color}11);border:2px solid {status_color};border-radius:16px;padding:20px;margin-bottom:20px;text-align:center">
         <div style="font-size:2.5rem;font-weight:700;color:{status_color}">{status_text}</div>
         <div style="font-size:0.9rem;color:#94a3b8;margin-top:5px">
-            Dzisiaj ({datetime.now().strftime('%d.%m')}): <strong>{today_sales:.0f} zł</strong> | <strong>{today_cnt}</strong> zamówień
+            Dzisiaj ({datetime.now().strftime('%d.%m')}): <strong>{today_sales:,.0f} zł</strong> | <strong>{today_cnt}</strong> zamówień
         </div>
     </div>
     
@@ -3058,15 +3058,15 @@ def statystyki():
             <div class="stat-l">Transakcji</div>
         </div>
         <div class="stat">
-            <div class="stat-v green">{przychod_total:.0f} zł</div>
-            <div class="stat-l">Przychód ({current_year}){f' (w tym [HANDSHAKE] {pryw_total_rok:.0f} zł prywatne)' if pryw_total_rok > 0 else ''}</div>
+            <div class="stat-v green">{przychod_total:,.0f} zł</div>
+            <div class="stat-l">Przychód ({current_year}){f' (w tym [HANDSHAKE] {pryw_total_rok:,.0f} zł prywatne)' if pryw_total_rok > 0 else ''}</div>
         </div>
         <div class="stat">
-            <div class="stat-v" style="color:#f43f5e">-{koszty_total_lacznie:.0f} zł</div>
-            <div class="stat-l">Koszty ({current_year}) <span style="font-size:0.65rem;color:#64748b">(w tym <span class=material-symbols-outlined>inventory_2</span> {palety_total_rok:.0f} zł palety)</span> <a href="/magazyn/koszty" style="color:#64748b;font-size:0.7rem;margin-left:4px">+dodaj</a></div>
+            <div class="stat-v" style="color:#f43f5e">-{koszty_total_lacznie:,.0f} zł</div>
+            <div class="stat-l">Koszty ({current_year}) <span style="font-size:0.65rem;color:#64748b">(w tym <span class=material-symbols-outlined>inventory_2</span> {palety_total_rok:,.0f} zł palety)</span> <a href="/magazyn/koszty" style="color:#64748b;font-size:0.7rem;margin-left:4px">+dodaj</a></div>
         </div>
         <div class="stat">
-            <div class="stat-v" style="color:{zysk_kolor}">{zysk_rok:.0f} zł</div>
+            <div class="stat-v" style="color:{zysk_kolor}">{zysk_rok:,.0f} zł</div>
             <div class="stat-l">Zysk brutto (przed podatkiem)</div>
         </div>
     </div>
@@ -3083,34 +3083,34 @@ def statystyki():
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód brutto</div>
-                <div style="font-weight:700;color:#8ff5ff">{przychod_total:.0f} zł</div>
+                <div style="font-weight:700;color:#8ff5ff">{przychod_total:,.0f} zł</div>
             </div>
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Przychód netto (bez VAT)</div>
-                <div style="font-weight:700">{przychod_netto:.0f} zł</div>
+                <div style="font-weight:700">{przychod_netto:,.0f} zł</div>
             </div>
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Koszty netto (bez VAT)</div>
-                <div style="font-weight:700;color:#f43f5e">-{koszty_netto:.0f} zł</div>
+                <div style="font-weight:700;color:#f43f5e">-{koszty_netto:,.0f} zł</div>
             </div>
             <div style="backdrop-filter:blur(16px);background:rgba(15,15,30,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Dochód do opodatkowania</div>
-                <div style="font-weight:700">{dochod:.0f} zł</div>
+                <div style="font-weight:700">{dochod:,.0f} zł</div>
             </div>
             <div style="background:#1a1025;border:1px solid #ef444433;border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">VAT do zapłaty (23%)</div>
-                <div style="font-weight:700;color:#ef4444">-{vat_do_zaplaty:.0f} zł</div>
+                <div style="font-weight:700;color:#ef4444">-{vat_do_zaplaty:,.0f} zł</div>
                 <div style="font-size:0.7rem;color:#475569;margin-top:2px">VAT sprzedaż {vat_sprzedaz:.0f} − VAT koszty {vat_koszty:.0f}</div>
             </div>
             <div style="background:#1a1025;border:1px solid #ef444433;border-radius:8px;padding:10px">
                 <div style="color:#64748b;margin-bottom:4px">Podatek dochodowy (19%)</div>
-                <div style="font-weight:700;color:#ef4444">-{podatek:.0f} zł</div>
+                <div style="font-weight:700;color:#ef4444">-{podatek:,.0f} zł</div>
                 <div style="font-size:0.7rem;color:#475569;margin-top:2px">{dochod:.0f} × 19%</div>
             </div>
         </div>
         <div style="margin-top:12px;padding:12px;background:#0a1f12;border:2px solid {zysk_na_reke_kolor}55;border-radius:10px;display:flex;justify-content:space-between;align-items:center">
             <div style="color:#94a3b8;font-size:0.9rem"><span class=material-symbols-outlined>paid</span> Zysk na rękę (po VAT i podatku)</div>
-            <div style="font-size:1.4rem;font-weight:700;color:{zysk_na_reke_kolor}">{zysk_na_reke:.0f} zł</div>
+            <div style="font-size:1.4rem;font-weight:700;color:{zysk_na_reke_kolor}">{zysk_na_reke:,.0f} zł</div>
         </div>
         <div style="font-size:0.7rem;color:#475569;margin-top:8px;text-align:center"><span class=material-symbols-outlined>warning</span> Szacunkowe — skonsultuj z księgową. Nie uwzględnia ZUS, ulg i odpisów.</div>
     </div>
@@ -3146,7 +3146,7 @@ def statystyki():
                     f'<div style="font-size:0.8rem;color:#e2e8f0;flex:1;margin-right:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{p["nazwa"][:35]}</div>'
                     f'<div style="font-weight:700;color:{kol};white-space:nowrap">{sign}{p["roi"]:.0f}%</div>'
                     f'</div>'
-                    f'<div style="font-size:0.7rem;color:#64748b;margin-top:2px">{p.get("sprzedane","?")}/{p.get("total","?")} szt. · koszt prop. {p["koszt"]:.0f} zł / {p.get("koszt_palety", p["koszt"]):.0f} zł · zysk {"+" if p["zysk"]>=0 else ""}{p["zysk"]:.0f} zł</div>'
+                    f'<div style="font-size:0.7rem;color:#64748b;margin-top:2px">{p.get("sprzedane","?")}/{p.get("total","?")} szt. · koszt prop. {p["koszt"]:,.0f} zł / {p.get("koszt_palety", p["koszt"]):,.0f} zł · zysk {"+" if p["zysk"]>=0 else ""}{p["zysk"]:,.0f} zł</div>'
                     f'{bar}'
                     f'</div>')
 
@@ -3231,7 +3231,7 @@ def statystyki():
                     <div class="item-meta">Sprzedano: {p['sprzedane']}x</div>
                 </div>
                 <div class="item-right">
-                    <div class="item-qty" style="color:#beee00">{p['przychod'] or 0:.0f} zł</div>
+                    <div class="item-qty" style="color:#beee00">{p['przychod'] or 0:,.0f} zł</div>
                 </div>
             </div>'''
     else:
@@ -3249,7 +3249,7 @@ def statystyki():
                     <div class="item-meta">Sprzedano: {d['sprzedane']}x</div>
                 </div>
                 <div class="item-right">
-                    <div class="item-qty" style="color:#beee00">{d['przychod'] or 0:.0f} zł</div>
+                    <div class="item-qty" style="color:#beee00">{d['przychod'] or 0:,.0f} zł</div>
                 </div>
             </div>'''
     else:
@@ -3785,8 +3785,8 @@ def palety():
                     </div>
                 </div>
                 <div style="text-align:right">
-                    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:2px">ZAKUP: {zakup_brutto:.0f} ZŁ</div>
-                    <div class="pl-headline" style="font-size:1.5rem;font-weight:700;color:#8ff5ff;letter-spacing:-0.03em;text-shadow:0 0 8px rgba(143,245,255,0.3)">{wartosc:.0f} ZŁ</div>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:2px">ZAKUP: {zakup_brutto:,.0f} ZŁ</div>
+                    <div class="pl-headline" style="font-size:1.5rem;font-weight:700;color:#8ff5ff;letter-spacing:-0.03em;text-shadow:0 0 8px rgba(143,245,255,0.3)">{wartosc:,.0f} ZŁ</div>
                 </div>
             </div>
         </div>'''
@@ -3803,7 +3803,7 @@ def palety():
                         <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em">{bez_palety['cnt']} prod. | {bez_palety['items']} szt.</div>
                     </div>
                 </div>
-                <div class="pl-headline" style="font-size:1.3rem;font-weight:700;color:#ff716c">{bez_palety['wartosc_allegro'] or 0:.0f} ZŁ</div>
+                <div class="pl-headline" style="font-size:1.3rem;font-weight:700;color:#ff716c">{bez_palety['wartosc_allegro'] or 0:,.0f} ZŁ</div>
             </div>
         </div>'''
     
@@ -4309,19 +4309,19 @@ def paleta_detail_by_id(paleta_id):
             <div class="stat-l">PRODUKTÓW</div>
         </div>
         <div class="stat">
-            <div class="stat-v">{netto:.0f} zł</div>
+            <div class="stat-v">{netto:,.0f} zł</div>
             <div class="stat-l">ZAKUP NETTO</div>
         </div>
         <div class="stat" style="border:2px solid #8ff5ff;border-radius:12px">
-            <div class="stat-v">{brutto:.0f} zł</div>
+            <div class="stat-v">{brutto:,.0f} zł</div>
             <div class="stat-l">ZAKUP BRUTTO</div>
         </div>
         <div class="stat">
-            <div class="stat-v green">{allegro:.0f} zł</div>
+            <div class="stat-v green">{allegro:,.0f} zł</div>
             <div class="stat-l">ALLEGRO (suma)</div>
         </div>
         <div class="stat">
-            <div class="stat-v" style="color:{('#beee00' if zysk > 0 else '#ef4444')}">{zysk:.0f} zł</div>
+            <div class="stat-v" style="color:{('#beee00' if zysk > 0 else '#ef4444')}">{zysk:,.0f} zł</div>
             <div class="stat-l">ZYSK</div>
         </div>
     </div>
@@ -4548,7 +4548,7 @@ def paleta_detail_by_id(paleta_id):
                 </div>
             </div>
             <div style="display:flex;align-items:center;flex-shrink:0">
-                <span style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:#8ff5ff">{_ca:.0f} zł</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:800;color:#8ff5ff">{_ca:,.0f} zł</span>
             </div>
         </a>'''
 
@@ -4812,15 +4812,15 @@ def paleta_detail(n):
             <div class="stat-l">Produktów</div>
         </div>
         <div class="stat">
-            <div class="stat-v">{netto:.0f} zł</div>
+            <div class="stat-v">{netto:,.0f} zł</div>
             <div class="stat-l">Zakup netto</div>
         </div>
         <div class="stat">
-            <div class="stat-v">{brutto:.0f} zł</div>
+            <div class="stat-v">{brutto:,.0f} zł</div>
             <div class="stat-l">Zakup brutto</div>
         </div>
         <div class="stat">
-            <div class="stat-v green">{allegro:.0f} zł</div>
+            <div class="stat-v green">{allegro:,.0f} zł</div>
             <div class="stat-l">Allegro (suma)</div>
         </div>
         <div class="stat">
@@ -8087,7 +8087,7 @@ def etykiety():
             </div>
             <div class="item-right" style="text-align:right;flex-shrink:0">
                 <div class="item-qty">{p['ilosc']}</div>
-                <div class="item-price">{p['cena_allegro']:.0f} zł</div>
+                <div class="item-price">{p['cena_allegro']:,.0f} zł</div>
             </div>
         </div>'''
 
@@ -8254,7 +8254,7 @@ def etykiety_vretti_pdf(products):
                 cena = product.get('cena_allegro') or 0
                 if cena:
                     c.setFont("Helvetica-Bold", 12)
-                    c.drawString(48*mm, y_info, f"{cena:.0f} zl")
+                    c.drawString(48*mm, y_info, f"{cena:,.0f} zl")
                     y_info -= 9*mm
 
                 # EAN/kod
@@ -9158,7 +9158,7 @@ def masowa_edycja_statusu():
             if new_cena_allegro is not None:
                 updates.append('cena_allegro = ?')
                 vals.append(new_cena_allegro)
-                changes.append(f"cena: {p['cena_allegro'] or 0:.0f} → {new_cena_allegro:.0f} zł")
+                changes.append(f"cena: {p['cena_allegro'] or 0:.0f} → {new_cena_allegro:,.0f} zł")
 
             if updates:
                 # updates contains only whitelisted 'column = ?' fragments (status, stan, lokalizacja, cena_allegro)
@@ -9371,7 +9371,7 @@ def api_kalibruj_cene():
     conn.commit()
     return _json.dumps({
         'success': True,
-        'message': f'Kalibracja: {(p["nazwa"] or "")[:60]} -> {cena:.0f} zl'
+        'message': f'Kalibracja: {(p["nazwa"] or "")[:60]} -> {cena:,.0f} zl'
     }), 200, {'Content-Type': 'application/json'}
 
 
@@ -9435,7 +9435,7 @@ def api_autowycena_paleta_stream(paleta_id):
                 asin = (p['asin'] or '').strip() or 'brak'
                 cena_brutto = float(p['cena_brutto'] or 0)
                 ilosc = int(p['ilosc'] or 1)
-                rrp_line = (f"Amazon RRP: {cena_brutto:.0f} zl" if cena_brutto > 0
+                rrp_line = (f"Amazon RRP: {cena_brutto:,.0f} zl" if cena_brutto > 0
                             else "Amazon RRP: nieznane (bazuj na nazwie + ASIN)")
                 prod_list.append(
                     f"[ID:{p['id']}] {nazwa[:140]}\n"
@@ -9449,8 +9449,8 @@ def api_autowycena_paleta_stream(paleta_id):
                 f"KONTEKST PALETY:\n"
                 f"- Nazwa: \"{_paleta_nazwa}\"\n"
                 f"- Dostawca: \"{_paleta_dostawca}\"\n"
-                f"- Koszt zakupu calej palety: {_paleta_cena_zakupu:.0f} zl\n"
-                f"- Szacowany koszt jednostkowy: ~{_pal_koszt_szt:.0f} zl/szt\n"
+                f"- Koszt zakupu calej palety: {_paleta_cena_zakupu:,.0f} zl\n"
+                f"- Szacowany koszt jednostkowy: ~{_pal_koszt_szt:,.0f} zl/szt\n"
                 f"- Stan produktow: nowe lub powystawowe z Amazon Returns (UK/USA)\n"
             )
 
@@ -9464,7 +9464,7 @@ def api_autowycena_paleta_stream(paleta_id):
                     _dt = (k['data_kalibracji'] or '')[:10]
                     _marker = '[*]' if k['zrodlo'] == 'sprzedaz' else '[M]'
                     _kalib_lines.append(
-                        f"  {_marker} \"{(k['nazwa'] or '')[:90]}\" -> {k['cena_sprzedazy']:.0f} zl ({_dt})"
+                        f"  {_marker} \"{(k['nazwa'] or '')[:90]}\" -> {k['cena_sprzedazy']:,.0f} zl ({_dt})"
                     )
                 _kalibracje_block = (
                     "\nTWOJE POTWIERDZONE PRECEDENSY (realne sprzedaze/kalibracje):\n"
@@ -9509,8 +9509,8 @@ ZASADY WYCENY (przeczytaj WSZYSTKIE i stosuj):
    produktu jest tylko sygnalem orientacyjnym. Bazuj GLOWNIE na nazwie/marce/
    konkretnym modelu — marze powyzej to checkpoint, nie sztywne wytyczne.
 
-4. **DOLNY PROG TWARDY dla TEJ palety**: cena_allegro >= {_pal_koszt_szt * 1.4:.0f} zl
-   (= koszt zakupu szt {_pal_koszt_szt:.0f} zl × 1.4 = pokrycie prowizji 11%
+4. **DOLNY PROG TWARDY dla TEJ palety**: cena_allegro >= {_pal_koszt_szt * 1.4:,.0f} zl
+   (= koszt zakupu szt {_pal_koszt_szt:,.0f} zl × 1.4 = pokrycie prowizji 11%
    + wysylki + min marzy 25%). System POST-walidacji i tak wymusi ten prog,
    jezeli zwrocisz mniej. Bazuj na koszcie zakupu szt z kontekstu palety
    powyzej, NIE na Amazon RRP (RRP to katalogowa cena, czesto zawyzona).
@@ -9612,7 +9612,7 @@ MUSISZ podac cene dla WSZYSTKICH {len(prod_list)} produktow z listy. Cena = licz
                                 if pid and 1 < price < 50000:
                                     ai_prices[pid] = round(price, 2)
                                     if uzasad:
-                                        print(f"[Auto-wycena] AI {pid}: {price:.0f} zl — {uzasad[:100]}")
+                                        print(f"[Auto-wycena] AI {pid}: {price:,.0f} zl — {uzasad[:100]}")
                         except Exception as _pe:
                             print(f"[Auto-wycena] JSON parse fallback: {_pe}")
                             for line in ai_text.strip().split('\n'):
@@ -10456,7 +10456,7 @@ def lezaki():
                 <div style="font-size:0.65rem;color:#64748b">SZTUK</div>
             </div>
             <div>
-                <div style="font-size:1.1rem;font-weight:700;color:#f97316">{total_wartosc:.0f} zł</div>
+                <div style="font-size:1.1rem;font-weight:700;color:#f97316">{total_wartosc:,.0f} zł</div>
                 <div style="font-size:0.65rem;color:#64748b">ZAMROŻONE</div>
             </div>
         </div>
@@ -10604,7 +10604,7 @@ def koszty_page():
     if koszty_kat:
         for r in koszty_kat:
             pill_icon = KAT_ICONS.get(r['kategoria'], 'bolt')
-            kat_pills += f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--kz-card2);border:1px solid var(--kz-border);padding:8px 14px;margin:0 8px 8px 0;font-size:0.8rem;font-family:\'Manrope\',sans-serif"><span class=material-symbols-outlined style=font-size:16px;color:var(--kz-pink)>{pill_icon}</span><span style="color:var(--kz-pink);font-weight:700">{float(r["suma"]):.0f} zl</span><span style="color:var(--kz-muted)">{dict(KATEGORIE).get(r["kategoria"],r["kategoria"])}</span></div>'
+            kat_pills += f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--kz-card2);border:1px solid var(--kz-border);padding:8px 14px;margin:0 8px 8px 0;font-size:0.8rem;font-family:\'Manrope\',sans-serif"><span class=material-symbols-outlined style=font-size:16px;color:var(--kz-pink)>{pill_icon}</span><span style="color:var(--kz-pink);font-weight:700">{float(r["suma"]):,.0f} zl</span><span style="color:var(--kz-muted)">{dict(KATEGORIE).get(r["kategoria"],r["kategoria"])}</span></div>'
 
     html = f'''
     <style>
@@ -10690,13 +10690,13 @@ def koszty_page():
         <div class="kz-metric">
             <div class="kz-metric-accent" style="background:var(--kz-cyan);box-shadow:0 0 15px rgba(143,245,255,0.3)"></div>
             <span class="material-symbols-outlined kz-metric-icon">account_balance_wallet</span>
-            <div class="kz-metric-val" style="color:var(--kz-cyan);text-shadow:0 0 20px rgba(143,245,255,0.4)">{suma_total:.0f} zl</div>
+            <div class="kz-metric-val" style="color:var(--kz-cyan);text-shadow:0 0 20px rgba(143,245,255,0.4)">{suma_total:,.0f} zl</div>
             <div class="kz-metric-label">Lacznie koszty</div>
         </div>
         <div class="kz-metric">
             <div class="kz-metric-accent" style="background:var(--kz-pink);box-shadow:0 0 15px rgba(255,107,155,0.3)"></div>
             <span class="material-symbols-outlined kz-metric-icon">calendar_month</span>
-            <div class="kz-metric-val" style="color:var(--kz-pink)">{suma_msc:.0f} zl</div>
+            <div class="kz-metric-val" style="color:var(--kz-pink)">{suma_msc:,.0f} zl</div>
             <div class="kz-metric-label">Ten miesiac</div>
         </div>
         <div class="kz-metric">
@@ -10863,11 +10863,11 @@ def sprzedaz_prywatna_page():
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-bottom:28px">
             <div style="background:#131315;padding:24px 20px;border-left:3px solid #8ff5ff">
                 <div class="sp-label" style="margin-bottom:8px">Rok {year}</div>
-                <div style="font-family:Space Grotesk,sans-serif;font-size:1.8rem;font-weight:800;color:#8ff5ff;letter-spacing:-0.03em;text-shadow:0 0 30px rgba(143,245,255,0.4),0 0 60px rgba(143,245,255,0.15)">{suma_rok:.0f} zl</div>
+                <div style="font-family:Space Grotesk,sans-serif;font-size:1.8rem;font-weight:800;color:#8ff5ff;letter-spacing:-0.03em;text-shadow:0 0 30px rgba(143,245,255,0.4),0 0 60px rgba(143,245,255,0.15)">{suma_rok:,.0f} zl</div>
             </div>
             <div style="background:#131315;padding:24px 20px;border-left:3px solid #ff6b9b">
                 <div class="sp-label" style="margin-bottom:8px">Ten miesiac</div>
-                <div style="font-family:Space Grotesk,sans-serif;font-size:1.8rem;font-weight:800;color:#ff6b9b;letter-spacing:-0.03em;text-shadow:0 0 25px rgba(255,107,155,0.3)">{suma_msc:.0f} zl</div>
+                <div style="font-family:Space Grotesk,sans-serif;font-size:1.8rem;font-weight:800;color:#ff6b9b;letter-spacing:-0.03em;text-shadow:0 0 25px rgba(255,107,155,0.3)">{suma_msc:,.0f} zl</div>
             </div>
             <div style="background:#131315;padding:24px 20px;border-left:3px solid #cafd00">
                 <div class="sp-label" style="margin-bottom:8px">Transakcji</div>

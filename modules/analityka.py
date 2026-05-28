@@ -1,4 +1,4 @@
-"""
+﻿"""
 Modul analityki -- routes dla /analityka/*, /statystyki
 """
 from flask import Blueprint, request, redirect, session, flash, jsonify, Response, current_app
@@ -206,7 +206,7 @@ def statystyki():
                 <div style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{nazwa}</div>
                 <div style="font-size:0.75rem;color:var(--text-muted)">{p['sprzedazy_cnt']} szt</div>
             </div>
-            <div style="font-weight:600;color:var(--green)">{p['sprzedazy_suma']:.0f} zl</div>
+            <div style="font-weight:600;color:var(--green)">{p['sprzedazy_suma']:,.0f} zl</div>
         </div>'''
 
     # TOP dostawcy HTML
@@ -218,11 +218,11 @@ def statystyki():
             <div style="font-weight:700;color:var(--orange);width:20px">{i+1}</div>
             <div style="flex:1">
                 <div style="font-weight:600" class="dostawca-name">{d['dostawca']}</div>
-                <div style="font-size:0.75rem;color:var(--text-muted)">{d['sprzedazy_cnt']} szt | {d['przychod']:.0f} zl przychod</div>
+                <div style="font-size:0.75rem;color:var(--text-muted)">{d['sprzedazy_cnt']} szt | {d['przychod']:,.0f} zl przychod</div>
             </div>
             <div style="text-align:right">
                 <div style="font-weight:700;color:{roi_color}">{d['roi']:.0f}%</div>
-                <div style="font-size:0.7rem;color:var(--text-muted)">koszt: {d['koszt']:.0f} zl</div>
+                <div style="font-size:0.7rem;color:var(--text-muted)">koszt: {d['koszt']:,.0f} zl</div>
             </div>
         </div>'''
 
@@ -297,7 +297,7 @@ def statystyki():
                 <div class="cy-kpi-lbl">Zamówień</div>
             </div>
             <div class="cy-kpi lime">
-                <div class="cy-kpi-val">{stats['sprzedaz_dzis_suma']:.0f} zł</div>
+                <div class="cy-kpi-val">{stats['sprzedaz_dzis_suma']:,.0f} zł</div>
                 <div class="cy-kpi-lbl">Przychód</div>
             </div>
             <div class="cy-kpi orange">
@@ -315,7 +315,7 @@ def statystyki():
                 <div class="cy-kpi-lbl">Palet kupionych</div>
             </div>
             <div class="cy-kpi pink">
-                <div class="cy-kpi-val">{stats['palety_miesiac_koszt']:.0f} zł</div>
+                <div class="cy-kpi-val">{stats['palety_miesiac_koszt']:,.0f} zł</div>
                 <div class="cy-kpi-lbl">Wydane</div>
             </div>
             <div class="cy-kpi cyan">
@@ -323,7 +323,7 @@ def statystyki():
                 <div class="cy-kpi-lbl">Sprzedaży</div>
             </div>
             <div class="cy-kpi lime">
-                <div class="cy-kpi-val">{stats['sprzedaz_miesiac_suma']:.0f} zł</div>
+                <div class="cy-kpi-val">{stats['sprzedaz_miesiac_suma']:,.0f} zł</div>
                 <div class="cy-kpi-lbl">Przychód</div>
             </div>
         </div>
@@ -332,7 +332,7 @@ def statystyki():
                 <div class="cy-highlight-lbl">Szacowany zysk</div>
                 <div style="font-size:0.68rem;color:#64748b;margin-top:2px">{miesiac}</div>
             </div>
-            <div class="cy-highlight-val">{stats['zysk_miesiac']:.0f} zł</div>
+            <div class="cy-highlight-val">{stats['zysk_miesiac']:,.0f} zł</div>
         </div>
     </div>
 
@@ -348,7 +348,7 @@ def statystyki():
                 <div class="cy-kpi-lbl">Sztuk</div>
             </div>
             <div class="cy-kpi lime">
-                <div class="cy-kpi-val">{stats['magazyn_wartosc']:.0f} zł</div>
+                <div class="cy-kpi-val">{stats['magazyn_wartosc']:,.0f} zł</div>
                 <div class="cy-kpi-lbl">Wartość</div>
             </div>
         </div>
@@ -372,7 +372,7 @@ def statystyki():
                 <div class="cy-kpi-lbl">Palet łącznie</div>
             </div>
             <div class="cy-kpi pink">
-                <div class="cy-kpi-val">{stats['palety_lacznie_koszt']:.0f} zł</div>
+                <div class="cy-kpi-val">{stats['palety_lacznie_koszt']:,.0f} zł</div>
                 <div class="cy-kpi-lbl">Zainwestowane</div>
             </div>
             <div class="cy-kpi cyan">
@@ -380,7 +380,7 @@ def statystyki():
                 <div class="cy-kpi-lbl">Sprzedanych</div>
             </div>
             <div class="cy-kpi lime">
-                <div class="cy-kpi-val">{stats['sprzedaz_lacznie_suma']:.0f} zł</div>
+                <div class="cy-kpi-val">{stats['sprzedaz_lacznie_suma']:,.0f} zł</div>
                 <div class="cy-kpi-lbl">Przychód{pryw_info}</div>
             </div>
         </div>
@@ -1367,7 +1367,7 @@ def analityka_kategorie():
         <tr data-id="{p['id']}" data-kat="{kat}">
             <td><input type="checkbox" class="produkt-check" value="{p['id']}"></td>
             <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{p['nazwa']}">{(p['nazwa'] or '')[:50]}</td>
-            <td>{p['cena_allegro']:.0f} zł</td>
+            <td>{p['cena_allegro']:,.0f} zł</td>
             <td>
                 <select class="kat-select form-control" data-id="{p['id']}" style="padding:6px;width:auto">
                     {''.join(f'<option value="{k}" {"selected" if kat == k else ""}>{v}</option>' for k, v in kategorie.items())}
@@ -1694,7 +1694,7 @@ def analityka_okazje():
           </div>
           <div style='display:flex;gap:20px;flex-wrap:wrap;font-size:0.85rem'>
             <div><div style='color:var(--text-muted);font-size:0.72rem'>SPRZEDANO</div>{r.get('sprzedaz_szt',0)} szt</div>
-            <div><div style='color:var(--text-muted);font-size:0.72rem'>PRZYCHÓD</div>{(r.get('przychod') or 0):.0f} zł</div>
+            <div><div style='color:var(--text-muted);font-size:0.72rem'>PRZYCHÓD</div>{(r.get('przychod') or 0):,.0f} zł</div>
             <div><div style='color:var(--text-muted);font-size:0.72rem'>ROI</div><span style='color:{roi_cls(r.get("roi"))};font-weight:600'>{(r.get("roi") or 0):.0f}%</span></div>
             <div><div style='color:var(--text-muted);font-size:0.72rem'>TREND M/M</div><span style='color:{trend_cls(r.get("trend_mm"))};font-weight:600'>{sign(r.get("trend_mm"))}{(r.get("trend_mm") or 0):.0f}%</span></div>
           </div>
@@ -2374,14 +2374,14 @@ def okazje_perplexity_analyze():
         top, na_stanie, kategorie = [], [], []
 
     sprzedane_txt = "\n".join(
-        f"{i}. {r['nazwa'][:60]} [{r['kategoria'] or 'inne'}] — sprzedano {r['ilosc_sprzedanych']}x za {r['cena_sprzedazy']:.0f} zl, przychod {r['przychod']:.0f} zl, dostawca: {r['dostawca'] or 'własny'}"
+        f"{i}. {r['nazwa'][:60]} [{r['kategoria'] or 'inne'}] — sprzedano {r['ilosc_sprzedanych']}x za {r['cena_sprzedazy']:,.0f} zl, przychod {r['przychod']:,.0f} zl, dostawca: {r['dostawca'] or 'własny'}"
         for i, r in enumerate(top, 1)) if top else "Brak danych sprzedażowych"
 
     stanie_txt = "\n".join(
-        f"- {r['nazwa'][:60]} [{r['kategoria'] or ''}] — {r['ilosc']} szt na stanie, cena {r['cena']:.0f} zl"
+        f"- {r['nazwa'][:60]} [{r['kategoria'] or ''}] — {r['ilosc']} szt na stanie, cena {r['cena']:,.0f} zl"
         for r in na_stanie) if na_stanie else "Brak produktów na stanie"
 
-    kat_txt = ", ".join(f"{r['kategoria']} ({r['przychod']:.0f} zl)" for r in kategorie) if kategorie else "mix"
+    kat_txt = ", ".join(f"{r['kategoria']} ({r['przychod']:,.0f} zl)" for r in kategorie) if kategorie else "mix"
 
     prompt = (
         f"Jestem sprzedawcą na Allegro, kupuję palety zwrotów konsumenckich i sprzedaję produkty pojedynczo. Data: {miesiac}.\n\n"
@@ -2460,15 +2460,15 @@ def okazje_perplexity_szukaj():
         top_sprzedaz, top_kat, palety_roi = [], [], []
 
     sprzedaz_txt = "\n".join(
-        f"- {r['nazwa'][:50]} [{r['kategoria'] or ''}] — {r['cena']:.0f} zl, dostawca: {r['dostawca'] or 'własny'}"
+        f"- {r['nazwa'][:50]} [{r['kategoria'] or ''}] — {r['cena']:,.0f} zl, dostawca: {r['dostawca'] or 'własny'}"
         for r in top_sprzedaz) if top_sprzedaz else "brak danych"
 
     kat_txt = "\n".join(
-        f"- {r['kategoria']}: {r['cnt']}x sprzedanych, {r['przychod']:.0f} zl przychód, śr. {r['sr_cena']:.0f} zl/szt"
+        f"- {r['kategoria']}: {r['cnt']}x sprzedanych, {r['przychod']:,.0f} zl przychód, śr. {r['sr_cena']:,.0f} zl/szt"
         for r in top_kat) if top_kat else "elektronika, AGD, sport"
 
     palety_txt = "\n".join(
-        f"- {r['nazwa']} ({r['dostawca']}): kupiono za {r['cena_zakupu']:.0f} zl ({r['ilosc_produktow']} szt), sprzedano {r['sprzedanych']}x = {(r['przychod_z_palety'] or 0):.0f} zl"
+        f"- {r['nazwa']} ({r['dostawca']}): kupiono za {r['cena_zakupu']:,.0f} zl ({r['ilosc_produktow']} szt), sprzedano {r['sprzedanych']}x = {(r['przychod_z_palety'] or 0):,.0f} zl"
         for r in palety_roi) if palety_roi else "brak danych"
 
     # Pobierz PRAWDZIWE produkty z Warrington (nowa strona, nie-Shopify)
@@ -2928,7 +2928,7 @@ def analityka_czas_sprzedazy():
         sep = f"border-bottom:1px solid var(--border);" if i < total-1 else ""
         name = (r['nazwa'] or 'Brak nazwy')[:50]
         cena = float(r['cena'] or 0)
-        return f'<div style="display:flex;align-items:center;gap:8px;padding:6px 0;{sep}"><div style="font-weight:700;color:{kolor};min-width:65px;font-size:0.85rem">{fmt_dni(r["dni_od_wystawienia"])}</div><div style="flex:1;font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{name}</div><div style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap">{cena:.0f} zł</div></div>'
+        return f'<div style="display:flex;align-items:center;gap:8px;padding:6px 0;{sep}"><div style="font-weight:700;color:{kolor};min-width:65px;font-size:0.85rem">{fmt_dni(r["dni_od_wystawienia"])}</div><div style="flex:1;font-size:0.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{name}</div><div style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap">{cena:,.0f} zł</div></div>'
 
     szybkie_html = ""
     if najszybsze:
@@ -3393,7 +3393,7 @@ def analizator_palet():
         data = p.get('data_zakupu') or ''
         koszt = p.get('cena_zakupu') or 0
         cnt = p.get('cnt_produktow') or 0
-        label = f"{nazwa} | {dostawca} | {data} | {koszt:.0f} zł | {cnt} prod."
+        label = f"{nazwa} | {dostawca} | {data} | {koszt:,.0f} zł | {cnt} prod."
         options_html += f'<option value="{p["id"]}">{label}</option>'
 
     no_key_warning = ""

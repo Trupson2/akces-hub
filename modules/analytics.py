@@ -1,4 +1,4 @@
-"""
+﻿"""
 ANALYTICS MODULE - Dashboard KPI & Kalkulator opłacalności palety
 v2.0 - Redesign with base.html template
 """
@@ -455,32 +455,32 @@ def kalkulator_palety():
     <div class="stat-row">
         <div class="stat-box" style="border-color:var(--red)">
             <div style="font-size:0.72rem;color:var(--red);margin-bottom:6px">Pesymistyczny</div>
-            <div class="stat-val {'green' if result['zysk_pesymistyczny'] > 0 else 'red'}">{result['zysk_pesymistyczny']:.0f} zl</div>
+            <div class="stat-val {'green' if result['zysk_pesymistyczny'] > 0 else 'red'}">{result['zysk_pesymistyczny']:,.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_pesymistyczny']:.0f}%</div>
         </div>
         <div class="stat-box" style="border-color:rgba(143,245,255,0.3);border-width:2px">
             <div style="font-size:0.72rem;color:#8ff5ff;margin-bottom:6px">Realny</div>
-            <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}" style="font-size:1.5rem">{result['zysk_realny']:.0f} zl</div>
+            <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}" style="font-size:1.5rem">{result['zysk_realny']:,.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_realny']:.0f}%</div>
         </div>
         <div class="stat-box" style="border-color:rgba(190,238,0,0.3)">
             <div style="font-size:0.72rem;color:#beee00;margin-bottom:6px">Optymistyczny</div>
-            <div class="stat-val green">{result['zysk_optymistyczny']:.0f} zl</div>
+            <div class="stat-val green">{result['zysk_optymistyczny']:,.0f} zl</div>
             <div class="stat-lbl">ROI: {result['roi_optymistyczny']:.0f}%</div>
         </div>
     </div>
 
     <div class="stat-row" style="grid-template-columns:repeat(4,1fr);margin-top:16px">
         <div class="stat-box">
-            <div class="stat-val">{result['cena_palety']:.0f} zl</div>
+            <div class="stat-val">{result['cena_palety']:,.0f} zl</div>
             <div class="stat-lbl">Koszt palety</div>
         </div>
         <div class="stat-box">
-            <div class="stat-val blue">{result['przychod_realny']:.0f} zl</div>
+            <div class="stat-val blue">{result['przychod_realny']:,.0f} zl</div>
             <div class="stat-lbl">Przychod (realny)</div>
         </div>
         <div class="stat-box">
-            <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}">{result['zysk_realny']:.0f} zl</div>
+            <div class="stat-val {'green' if result['zysk_realny'] > 0 else 'red'}">{result['zysk_realny']:,.0f} zl</div>
             <div class="stat-lbl">Zysk netto</div>
         </div>
         <div class="stat-box">
@@ -1006,7 +1006,7 @@ def profit_analyzer():
                     <span style="font-size:0.72rem;white-space:nowrap">{p['sprzedane_szt'] or 0}/{total_szt}</span>
                 </div>
             </td>
-            <td style="font-size:0.72rem">{tempo:.0f} zl/d</td>
+            <td style="font-size:0.72rem">{tempo:,.0f} zl/d</td>
             <td>{status_html}</td>
         </tr>'''
 
@@ -1703,21 +1703,21 @@ def ai_recommendations():
     data_summary = f"Dane z ostatnich {months_range} miesiecy sprzedazy na Allegro.\n\n"
     data_summary += "TOP 10 produktow wg przychodu:\n"
     for p in top_prod:
-        data_summary += f"- {p['nazwa']}: {p['przychod']:.0f} zl, {p['szt']} szt., kat: {p['kategoria'] or 'brak'}\n"
+        data_summary += f"- {p['nazwa']}: {p['przychod']:,.0f} zl, {p['szt']} szt., kat: {p['kategoria'] or 'brak'}\n"
     data_summary += "\nProdukty stojace w magazynie (najdluzej):\n"
     for s in stojace:
-        data_summary += f"- {s['nazwa']}: {s['dni']:.0f} dni, cena {s['cena_allegro'] or 0:.0f} zl, {s['ilosc'] or 1} szt, dostawca: {s['dostawca']}\n"
+        data_summary += f"- {s['nazwa']}: {s['dni']:.0f} dni, cena {s['cena_allegro'] or 0:,.0f} zl, {s['ilosc'] or 1} szt, dostawca: {s['dostawca']}\n"
     data_summary += "\nDostawcy (inwestycja vs przychod):\n"
     for d in dostawcy:
         roi = ((d['przychod'] - d['inwestycja']) / d['inwestycja'] * 100) if d['inwestycja'] > 0 else 0
-        data_summary += f"- {d['dostawca']}: {d['palet']} palet, inwestycja {d['inwestycja']:.0f} zl, przychod {d['przychod']:.0f} zl, ROI {roi:.0f}%\n"
+        data_summary += f"- {d['dostawca']}: {d['palet']} palet, inwestycja {d['inwestycja']:,.0f} zl, przychod {d['przychod']:,.0f} zl, ROI {roi:.0f}%\n"
     data_summary += "\nKategorie wg przychodu:\n"
     for k in kategorie:
-        data_summary += f"- {k['kat']}: {k['wartosc']:.0f} zl ({k['cnt']} sprzedazy)\n"
+        data_summary += f"- {k['kat']}: {k['wartosc']:,.0f} zl ({k['cnt']} sprzedazy)\n"
     if zwroty:
         data_summary += "\nNajczesciej zwracane:\n"
         for z in zwroty:
-            data_summary += f"- {z['nazwa']}: {z['cnt']}x zwrot, wartosc {z['wartosc']:.0f} zl\n"
+            data_summary += f"- {z['nazwa']}: {z['cnt']}x zwrot, wartosc {z['wartosc']:,.0f} zl\n"
 
     prompt = f"""Jestes doradca biznesowym dla sprzedawcy palet zwrotowych na Allegro (Polska).
 Na podstawie ponizszych danych, daj KONKRETNE, praktyczne rekomendacje:

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Paletomat module - scraper Amazon + generator ofert Allegro
 """
 
@@ -4172,7 +4172,7 @@ def generator_mass_create_from_paleta_stream():
 
                             try:
                                 from .inventory_utils import add_historia
-                                add_historia(product_id, 'szkic_utworzony', f'Utworzono szkic na Allegro za {cena:.0f} zł', {'allegro_id': offer_id, 'cena': cena})
+                                add_historia(product_id, 'szkic_utworzony', f'Utworzono szkic na Allegro za {cena:,.0f} zł', {'allegro_id': offer_id, 'cena': cena})
                             except:
                                 pass
 
@@ -6558,10 +6558,10 @@ def generator_create_stream(asin):
                         time_mod.sleep(0.1)  # Małe opóźnienie dla pewności
                         
                         if mark_as_published:
-                            add_historia(produkt_id, 'wystawiono', f'Wystawiono na Allegro za {cena:.0f} zł', {'allegro_id': offer_id, 'cena': cena})
+                            add_historia(produkt_id, 'wystawiono', f'Wystawiono na Allegro za {cena:,.0f} zł', {'allegro_id': offer_id, 'cena': cena})
                             yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>inventory_2</span> Zaktualizowano magazyn: WYSTAWIONY (ID: {produkt_id})', 'color': '#22c55e'})}\n\n"
                         else:
-                            add_historia(produkt_id, 'edytowano', f'Utworzono ofertę Allegro za {cena:.0f} zł (bez zmiany statusu)', {'allegro_id': offer_id, 'cena': cena})
+                            add_historia(produkt_id, 'edytowano', f'Utworzono ofertę Allegro za {cena:,.0f} zł (bez zmiany statusu)', {'allegro_id': offer_id, 'cena': cena})
                             yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>inventory_2</span> Zaktualizowano magazyn: NIE ZMIENIONO statusu (ID: {produkt_id})', 'color': '#3b82f6'})}\n\n"
                     
                     yield f"data: {json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined>save</span> Zapisano do bazy pomyślnie', 'color': '#22c55e'})}\n\n"
@@ -7092,7 +7092,7 @@ def monitoring():
     
     <div class="stats">
         <div class="stat"><div class="stat-v green">{s['sprzedane']}</div><div class="stat-l">Sprzedanych</div></div>
-        <div class="stat"><div class="stat-v green">{s['przychod']:.0f} zł</div><div class="stat-l">Przychód</div></div>
+        <div class="stat"><div class="stat-v green">{s['przychod']:,.0f} zł</div><div class="stat-l">Przychód</div></div>
         <div class="stat"><div class="stat-v">{s['aktywne']}</div><div class="stat-l">Aktywnych</div></div>
     </div>
     
