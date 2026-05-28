@@ -342,7 +342,27 @@ def check_license():
     """
     Sprawdź czy licencja jest aktywna.
     Returns: (is_valid, plan, message)
+
+    FIX 2026-05-28: TRYB SELF-HOSTED. Klient hostuje aplikacje sam na
+    swoim Pi/Windows, vendor nie ma dostepu. Walidacja HMAC przy kazdym
+    pull-u/restarcie tylko utrudniala bez realnej korzysci - klient z
+    dostepem do .license_secret moze i tak generowac wlasne klucze.
+    Wylacz przez set_config('license_check_disabled', '1') (default = '1'
+    od v1.0.67 = WYLACZONE dla self-hosted).
+    Pozostawiamy oryginalna logike validacji w verify_license() na
+    wypadek gdyby ktos w przyszlosci chcial wlaczyc serwer licencji,
+    ale check_license() krotko zwraca OK z planu zapisanego w configu.
     """
+    try:
+        from .database import get_config
+        # Default '1' = wylaczone (self-hosted, klient hostuje sam)
+        # Ustaw '0' zeby PRZYWROCIC stara walidacje (np vendor mode)
+        if get_config('license_check_disabled', '1') == '1':
+            lic = get_license_info() or {}
+            return True, lic.get('plan', 'max'), 'self-hosted'
+    except Exception:
+        pass
+
     lic = get_license_info()
     if not lic:
         return False, None, 'Brak licencji — aktywuj w Ustawieniach'
@@ -356,6 +376,23 @@ def check_license():
 
 def get_license_display():
     """Pobierz dane do wyświetlenia na dashboardzie."""
+    # FIX 2026-05-28: w trybie self-hosted zawsze pokazuj 'active'.
+    try:
+        from .database import get_config
+        if get_config('license_check_disabled', '1') == '1':
+            lic = get_license_info() or {}
+            return {
+                'active': True,
+                'key': lic.get('key', 'SELF-HOSTED'),
+                'client': lic.get('client', 'Self-hosted'),
+                'plan': lic.get('plan', 'max'),
+                'expires': 'Bezterminowo (self-hosted)',
+                'hwid': lic.get('hwid', ''),
+                'message': 'Tryb self-hosted - pelny dostep'
+            }
+    except Exception:
+        pass
+
     lic = get_license_info()
     if not lic:
         return {
@@ -425,7 +462,17 @@ def is_subscription_expired():
     """
     Sprawdź czy subskrypcja wygasła.
     Returns: bool (True = wygasła, False = aktywna lub bezterminowa)
+
+    FIX 2026-05-28: w trybie self-hosted (default) NIGDY nie zwraca True.
+    Klient ma pelny dostep do aplikacji bez czasowych limitow.
     """
+    try:
+        from .database import get_config
+        if get_config('license_check_disabled', '1') == '1':
+            return False
+    except Exception:
+        pass
+
     days = get_days_remaining()
     if days is None:
         return False  # Bezterminowa lub brak licencji (obsługiwane osobno)
