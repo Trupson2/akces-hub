@@ -2653,6 +2653,18 @@ def system_gemini_model():
     return jsonify({'ok': True, 'model': model})
 
 
+@app.route('/admin/update-git', methods=['POST'])
+@require_admin
+def admin_update_git_alias():
+    """ALIAS dla /system/update - banner update w base.html (linia 509) wskazuje
+    na ten URL ale endpoint nie istnial -> 404 przy klik banera.
+
+    FIX 2026-05-28: przekieruj do /system/update z zachowaniem POST body
+    + CSRF. Rzeczywista logika w system_update() ponizej.
+    """
+    return system_update()
+
+
 @app.route('/system/update', methods=['POST'])
 @require_admin
 def system_update():
