@@ -3809,11 +3809,13 @@ def generator_mass_create_from_paleta_stream():
                     return result
 
                 # 1. Szukaj po produkt_id + weryfikacja nazwy
+                # FIX v1.0.86: dodano 'draft'/'szkic' - drugi klik "Wystaw"
+                # nie zauwazal istniejacego szkicu i dublowal go na Allegro.
                 existing_offer = None
                 _pid_candidate = conn.execute('''
                     SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status
                     FROM oferty o
-                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published')
+                    WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published','draft','DRAFT','szkic','SZKIC')
                     AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
                     AND o.produkt_id = ?
                     LIMIT 1
@@ -3832,6 +3834,7 @@ def generator_mass_create_from_paleta_stream():
                 _current_stan = (p.get('stan') or 'Nowy').strip()
 
                 # 2. Szukaj po ASIN (najwiarygodniejszy identyfikator) + pasujący stan
+                # FIX v1.0.86: dodano 'draft'/'szkic' do whitelist.
                 if asin and not existing_offer:
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE asin = ?', (asin,)).fetchall()]
                     if all_prod_ids:
@@ -3840,7 +3843,7 @@ def generator_mass_create_from_paleta_stream():
                             "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, p2.stan as prod_stan "
                             "FROM oferty o "
                             "LEFT JOIN produkty p2 ON o.produkt_id = p2.id "
-                            "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
+                            "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published','draft','DRAFT','szkic','SZKIC') "
                             "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
                             "AND o.produkt_id IN (" + ph + ")",
                             all_prod_ids).fetchall()
@@ -3859,6 +3862,7 @@ def generator_mass_create_from_paleta_stream():
                             yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>search</span> ASIN {asin}: brak pasującej oferty (stan={_current_stan}) — tworzę nową', 'color': '#6366f1'}) + "\n\n"
 
                 # 3. Szukaj po EAN (TYLKO jeśli produkt NIE MA ASIN — EAN bez ASIN jest ryzykowny)
+                # FIX v1.0.86: dodano 'draft'/'szkic' do whitelist.
                 if ean and not existing_offer and not asin:
                     all_prod_ids = [r['id'] for r in conn.execute('SELECT id FROM produkty WHERE ean = ?', (ean,)).fetchall()]
                     if all_prod_ids:
@@ -3867,7 +3871,7 @@ def generator_mass_create_from_paleta_stream():
                             "SELECT o.id, o.allegro_id, o.tytul, o.ilosc, o.status, p2.stan as prod_stan "
                             "FROM oferty o "
                             "LEFT JOIN produkty p2 ON o.produkt_id = p2.id "
-                            "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published') "
+                            "WHERE o.status IN ('active','ACTIVE','aktywna','wystawiona','published','draft','DRAFT','szkic','SZKIC') "
                             "AND o.allegro_id IS NOT NULL AND o.allegro_id != '' "
                             "AND o.produkt_id IN (" + ph + ")",
                             all_prod_ids).fetchall()
