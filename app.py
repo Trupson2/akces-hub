@@ -2656,13 +2656,20 @@ def system_gemini_model():
 @app.route('/admin/update-git', methods=['POST'])
 @require_admin
 def admin_update_git_alias():
-    """ALIAS dla /system/update - banner update w base.html (linia 509) wskazuje
-    na ten URL ale endpoint nie istnial -> 404 przy klik banera.
+    """ALIAS smart - auto-detect typ instalacji i wywoluje wlasciwy update.
 
-    FIX 2026-05-28: przekieruj do /system/update z zachowaniem POST body
-    + CSRF. Rzeczywista logika w system_update() ponizej.
+    FIX 2026-05-28: Banner w base.html zawsze kieruje na /admin/update-git.
+    Ale klienci ZIP install (jak Macek) NIE maja .git folderu - git pull
+    padnie z 'fatal: not a git repository'. Detect:
+    - .git folder istnieje -> git pull (system_update)
+    - brak .git -> pobierz z PUBLIC repo (system_update_from_public)
     """
-    return system_update()
+    _app_dir = os.path.dirname(os.path.abspath(__file__))
+    is_git_install = os.path.isdir(os.path.join(_app_dir, '.git'))
+    if is_git_install:
+        return system_update()
+    # ZIP install - pobierz z public repo bez tokenu
+    return system_update_from_public()
 
 
 @app.route('/system/update', methods=['POST'])
