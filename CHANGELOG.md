@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- fix(update): git fetch + reset --hard origin zamiast git pull. Caly dzien pull padal (divergent branches, merge conflicts CHANGELOG, local changes) i wymagal recznego SSH. reset --hard = deterministyczne, nigdy nie pada. Dane klienta untracked -> nietkniete.
 - feat(palety): "Nowa paleta" ma 3 drogi - "Utworz + skaner/ASIN" (scraper), "Utworz + wgraj Excel" (import z preselekcja palety), "Sama paleta" (lista). Import czyta ?paleta_id= i preselektuje.
 - feat(palety): "Nowa paleta" ma 2 przyciski - "Utworz + dodaj produkty" (-> scraper z preselekcja palety) i "Utworz (sama paleta)" (-> lista). Scraper czyta ?paleta_id= i preselektuje palete w dropdownie.
 - perf(wystaw): pojedyncze wystawianie szybsze. Upload zdjec ROWNOLEGLY (ThreadPoolExecutor x4, kolejnosc zachowana) zamiast sekwencyjnego - 8 zdjec ~16s -> ~4s. Usuniete sztuczne time.sleep (0.2 + 0.3/zdjecie = ~3s zmarnowane). Single z ~30s -> ~12-15s.

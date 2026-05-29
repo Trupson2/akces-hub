@@ -2873,24 +2873,40 @@ def system_update():
             print(f"[WARN] Pre-update backup error: {e}")
 
         # CHANGELOG.md jest auto-generowany przy starcie -> zawsze ma lokalne zmiany.
-        # Discardujemy je zeby git pull nie wywalal "would be overwritten by merge".
         _app_cwd = os.path.dirname(os.path.abspath(__file__))
-        try:
-            subprocess.run(['git', 'checkout', 'HEAD', '--', 'CHANGELOG.md'],
-                           capture_output=True, text=True, timeout=10, cwd=_app_cwd)
-        except Exception:
-            pass
 
-        # Git pull (--autostash = lokalne zmiany w innych plikach stash'owane automatycznie)
-        result = subprocess.run(
-            ['git', 'pull', '--autostash'], capture_output=True, text=True, timeout=30,
-            cwd=_app_cwd
-        )
-        pull_output = result.stdout.strip()
+        # v1.0.114: git fetch + reset --hard origin ZAMIAST git pull --autostash.
+        # Caly dzien 'git pull' padal na: divergent branches, merge conflicts
+        # (CHANGELOG.md), 'local changes would be overwritten'. Kazdy wymagal
+        # recznego SSH. reset --hard origin = DETERMINISTYCZNE: porzuca wszystkie
+        # lokalne rozbieznosci tracked plikow, ustawia dokladnie origin. NIGDY
+        # nie pada na konflikt/divergent.
+        # BEZPIECZENSTWO: dane klienta (akces_hub.db, .license_secret,
+        # vendor_config.json, static/brand_logo.*, backups/) sa untracked /
+        # .gitignore -> git reset --hard ICH NIE TYKA. Tylko kod (tracked) -> origin.
+        _branch = (subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                                  capture_output=True, text=True, timeout=5, cwd=_app_cwd
+                                  ).stdout.strip() or 'main')
+        _head_before = subprocess.run(['git', 'rev-parse', 'HEAD'],
+                                      capture_output=True, text=True, timeout=5, cwd=_app_cwd).stdout.strip()
+        # 1. Fetch origin
+        _fetch = subprocess.run(['git', 'fetch', 'origin', _branch],
+                                capture_output=True, text=True, timeout=60, cwd=_app_cwd)
+        if _fetch.returncode != 0:
+            log_admin_action('system_update', {'stage': 'git_fetch'}, success=False,
+                             error_message=f'Git fetch failed: {_fetch.stderr[:200]}')
+            return jsonify({'ok': False, 'error': f'Git fetch failed: {_fetch.stderr[:200]}'})
+        # 2. Reset --hard do origin (deterministyczne, ignoruje divergent/konflikty)
+        result = subprocess.run(['git', 'reset', '--hard', f'origin/{_branch}'],
+                                capture_output=True, text=True, timeout=30, cwd=_app_cwd)
         if result.returncode != 0:
-            log_admin_action('system_update', {'stage': 'git_pull'}, success=False,
-                             error_message=f'Git pull failed: {result.stderr[:200]}')
-            return jsonify({'ok': False, 'error': f'Git pull failed: {result.stderr[:200]}'})
+            log_admin_action('system_update', {'stage': 'git_reset'}, success=False,
+                             error_message=f'Git reset failed: {result.stderr[:200]}')
+            return jsonify({'ok': False, 'error': f'Git reset failed: {result.stderr[:200]}'})
+        _head_after = subprocess.run(['git', 'rev-parse', 'HEAD'],
+                                     capture_output=True, text=True, timeout=5, cwd=_app_cwd).stdout.strip()
+        pull_output = ('Already up to date' if _head_before == _head_after
+                       else f'Updated {_head_before[:7]}..{_head_after[:7]}')
 
         if 'Already up to date' in pull_output:
             # Nawet jeśli brak nowych commitów — wymuś restart (przeładowanie modułów)
