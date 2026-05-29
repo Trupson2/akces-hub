@@ -6474,8 +6474,8 @@ def generator_create_stream(asin):
     def generate(base_url_arg):
         # Sprawdź autoryzację
         yield f"data: {json.dumps({'type': 'progress', 'percent': 10, 'message': 'Sprawdzam połączenie...'})}\n\n"
-        time.sleep(0.2)
-        
+        # v1.0.111: usuniety time.sleep(0.2) - kosmetyczne opoznienie
+
         if not is_authenticated():
             yield f"data: {json.dumps({'type': 'error', 'error': 'Nie zalogowany do Allegro'})}\n\n"
             return
@@ -6552,30 +6552,35 @@ def generator_create_stream(asin):
         # UPLOAD ZDJĘĆ DO ALLEGRO - PRZED create_offer!
         yield f"data: {json.dumps({'type': 'progress', 'percent': 55, 'message': 'Uploaduję zdjęcia...'})}\n\n"
         
-        uploaded_urls = []
-        for i, url in enumerate(processed[:8]):
-            # Progress bar dla każdego zdjęcia
-            upload_percent = 55 + int((i / len(processed)) * 20)
-            yield f"data: {json.dumps({'type': 'progress', 'percent': upload_percent, 'message': f'Upload {i+1}/{len(processed)}...'})}\n\n"
-            
-            # Log z URL
-            short_url = url[:50] + '...' if len(url) > 50 else url
-            yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>upload</span> [{i+1}/{len(processed)}] {short_url}', 'color': '#64748b'})}\n\n"
-            
-            try:
-                # Przekaż ASIN do upload_image_to_allegro
-                allegro_url = upload_image_to_allegro(url, asin=asin)
-                if allegro_url:
-                    uploaded_urls.append(allegro_url)
-                    yield f"data: {json.dumps({'type': 'log', 'message': f'   <span class=material-symbols-outlined>check_circle</span> Uploadowano pomyślnie', 'color': '#22c55e'})}\n\n"
-                else:
-                    yield f"data: {json.dumps({'type': 'log', 'message': f'   <span class=material-symbols-outlined>cancel</span> Upload się nie powiódł', 'color': '#ef4444'})}\n\n"
-            except Exception as e:
-                yield f"data: {json.dumps({'type': 'log', 'message': f'   <span class=material-symbols-outlined>cancel</span> Błąd: {str(e)[:50]}', 'color': '#ef4444'})}\n\n"
-            
-            # Małe opóźnienie żeby user widział postęp
-            time.sleep(0.3)
-        
+        # v1.0.111: UPLOAD ROWNOLEGLY (ThreadPoolExecutor max_workers=4) zamiast
+        # sekwencyjnego for loop. 8 zdjec sekwencyjnie ~16s -> rownolegle ~4s.
+        # Kolejnosc ZACHOWANA przez sloty[idx] (pierwsze zdjecie = glowne na Allegro!).
+        # as_completed pozwala yield progress w miare konczenia (SSE nie zamiera).
+        from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _ac
+        _imgs_single = processed[:8]
+        _slots = [None] * len(_imgs_single)
+        yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>bolt</span> Upload {len(_imgs_single)} zdjęć równolegle...', 'color': '#3b82f6'})}\n\n"
+        try:
+            with _TPE(max_workers=4) as _ex_up:
+                _fut_map = {_ex_up.submit(upload_image_to_allegro, _u, asin=asin): _i
+                            for _i, _u in enumerate(_imgs_single)}
+                _done_cnt = 0
+                for _fut in _ac(_fut_map):
+                    _idx = _fut_map[_fut]
+                    try:
+                        _res = _fut.result()
+                        if _res:
+                            _slots[_idx] = _res
+                    except Exception:
+                        pass
+                    _done_cnt += 1
+                    _pct = 55 + int((_done_cnt / max(1, len(_imgs_single))) * 20)
+                    yield f"data: {json.dumps({'type': 'progress', 'percent': _pct, 'message': f'Upload {_done_cnt}/{len(_imgs_single)}...'})}\n\n"
+        except Exception as _ue:
+            yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>warning</span> Upload błąd: {str(_ue)[:50]}', 'color': '#ef4444'})}\n\n"
+        # Zachowaj kolejnosc (usun None - nieudane uploady)
+        uploaded_urls = [_u for _u in _slots if _u]
+
         yield f"data: {json.dumps({'type': 'progress', 'percent': 65, 'message': f'Zdjęcia gotowe ({len(uploaded_urls)}/{len(processed)})'})}\n\n"
         yield f"data: {json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>photo_camera</span> Uploadowano {len(uploaded_urls)}/{len(processed)} zdjęć', 'color': '#3b82f6'})}\n\n"
         
