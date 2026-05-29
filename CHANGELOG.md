@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- fix(version): GIT install zawsze ufa git HEAD (nie last_install_commit). Manual git pull aktualizuje wersje + chowa baner. Bug v1.0.97-103: sidebar 'v1.0.103+fc9421f' (stary commit) bo last_install_commit zostawal stale przy manual pull. last_install_commit teraz tylko dla ZIP install.
 - feat(backup): mirror off-site do folderu OneDrive/Dropbox. Config backup_mirror_path w /magazyn/backup. Po kazdym backupie kopia trafia do wskazanego folderu (auto-sync do chmury). Trzyma 30 kopii off-site. Walidacja sciezki + test zapisu przed zapisaniem. Najprostszy off-site dla nietechnicznego klienta - bez CLI/OAuth.
 - fix(opis-ai): Gemini odpala ZAWSZE gdy api_key, nawet bez bullet_points z Amazon. Produkty bez ASIN (kierownice MOZA, OLX) szly do fallback ktory robi 1-zdanie 'produkt wyrozniajacy sie solidnym wykonaniem'. Teraz Gemini z samej nazwy + typu + categorii pisze pelny opis.
 

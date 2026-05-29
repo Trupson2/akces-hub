@@ -109,9 +109,16 @@ def _is_commit_hash(s):
 def _get_version():
     """Wersja z pliku VERSION + commit hash.
 
-    v1.0.97: priorytetuj `last_install_commit` z config nad git rev-parse.
-    v1.0.101 (FIX): walidacja - tylko jezeli to faktycznie commit hash,
-    nie VERSION string.
+    v1.0.104 (FIX): zrodlo prawdy zalezy od typu instalacji:
+    - GIT install (.git istnieje): ZAWSZE git rev-parse HEAD. Po manual
+      git pull to jest aktualne. last_install_commit ignorowany (mogl
+      zostac stale gdy klient pull-uje recznie zamiast przez endpoint).
+    - ZIP install (brak .git): last_install_commit z config (git rev-parse
+      zwrocilby stary commit bo ZIP nie ma .git lub ma stary).
+
+    Bug v1.0.97-v1.0.103: _get_version uzywal last_install_commit nawet dla
+    git install -> po manual git pull sidebar pokazywal stary commit
+    (np 'v1.0.103+fc9421f' gdzie fc9421f to commit v1.0.102).
     """
     ver = '1.0.0'
     try:
@@ -120,25 +127,27 @@ def _get_version():
             ver = open(vf).read().strip()
     except:
         pass
-    # 1. Priorytet: last_install_commit z config (ale TYLKO jezeli to git hash)
-    try:
-        from modules.database import get_config
-        _last_install = get_config('last_install_commit', '').strip()
-        if _is_commit_hash(_last_install):
-            ver += f'+{_last_install[:7]}'
-            return ver
-    except Exception:
-        pass
-    # 2. Fallback: git rev-parse (swieza instalka albo brak DB albo invalid hash)
-    try:
-        import subprocess
-        r = subprocess.run(['git', 'log', '-1', '--pretty=format:%h'],
-                          capture_output=True, text=True, timeout=5,
-                          cwd=os.path.dirname(os.path.abspath(__file__)))
-        if r.returncode == 0 and r.stdout.strip():
-            ver += f'+{r.stdout.strip()}'
-    except:
-        pass
+    _app_d = os.path.dirname(os.path.abspath(__file__))
+    _is_git = os.path.isdir(os.path.join(_app_d, '.git'))
+    if _is_git:
+        # GIT install: git HEAD = prawda (aktualne po kazdym pull)
+        try:
+            import subprocess
+            r = subprocess.run(['git', 'log', '-1', '--pretty=format:%h'],
+                              capture_output=True, text=True, timeout=5, cwd=_app_d)
+            if r.returncode == 0 and r.stdout.strip():
+                ver += f'+{r.stdout.strip()}'
+        except:
+            pass
+    else:
+        # ZIP install: last_install_commit z config (jezeli valid hash)
+        try:
+            from modules.database import get_config
+            _last_install = get_config('last_install_commit', '').strip()
+            if _is_commit_hash(_last_install):
+                ver += f'+{_last_install[:7]}'
+        except Exception:
+            pass
     return ver
 
 VERSION = _get_version()
@@ -256,20 +265,17 @@ def _git_update_check_async():
                               cwd=_app_dir).stdout.strip() or 'main'
         _sp.run(['git', 'fetch', 'origin', _cur_branch, '--quiet'],
                 capture_output=True, timeout=15, cwd=_app_dir)
-        # v1.0.97 + v1.0.101: local z last_install_commit (jezeli VALID hash)
-        # zeby ZIP install na git folderze NIE generowal fantomowych update'ow.
-        # Walidacja przez _is_commit_hash chroni przed bugiem v1.0.97 gdzie
-        # VERSION string ('1.0.100') byl traktowany jako commit hash.
-        _last_install = get_config('last_install_commit', '').strip()
-        if _is_commit_hash(_last_install):
-            local = _last_install
-        else:
-            local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
-                            cwd=_app_dir).stdout.strip()
+        # v1.0.104: ta funkcja leci TYLKO dla git install (early return wyzej
+        # gdy brak .git). Dla git install git HEAD = prawda po kazdym pull.
+        # Usuniety last_install_commit override (v1.0.101) ktory powodowal
+        # ze manual git pull nie aktualizowal local -> baner wisial mimo
+        # ze HEAD == origin.
+        local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
+                        cwd=_app_dir).stdout.strip()
         remote = _sp.run(['git', 'rev-parse', f'origin/{_cur_branch}'], capture_output=True, text=True, timeout=5,
                          cwd=_app_dir).stdout.strip()
-        # Porownanie: oba pelne SHA (40) lub oba 7-char short
-        has_update = local[:7] != remote[:7]
+        # Porownanie: oba pelne SHA (40)
+        has_update = bool(local) and bool(remote) and local != remote
         remote_msg = ''
         remote_hash = ''
         if has_update:
