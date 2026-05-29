@@ -2296,6 +2296,17 @@ h1{text-align:center;font-size:1.5rem;margin-bottom:4px;color:#e2e8f0}
             'local_hash': cache.get('local_hash', ''),
             'is_zip': _is_zip,
         }
+        # v1.0.98 FIX: sync update_available z cache.has_update zeby banner
+        # gorny zawsze zgadzal sie z dashboard widgetem. Bez tego update_available
+        # mialo stale value (np. po manualnym git pull + restart, gdzie endpoint
+        # update nie zostal wywolany -> config nie wyczyszczony) -> baner wisi
+        # mimo ze cache.has_update=False i dashboard mowi 'System aktualny'.
+        try:
+            _expected = '1' if cache.get('has_update', False) else '0'
+            if get_config('update_available', '0') != _expected:
+                set_config('update_available', _expected)
+        except Exception:
+            pass
     except:
         pass
 
@@ -8679,7 +8690,11 @@ if __name__ == '__main__':
     try:
         from modules.database import set_config as _sc_start
         _sc_start('update_check_cache', '')
-        log("Update cache wyczyszczony (restart)")
+        # v1.0.98 FIX: tez wyzeruj update_available zeby baner nie wisial
+        # od razu po restartcie (jak Adrian po manualnym git pull + restart).
+        # Pierwszy F5 na dashboardzie odpali bg check i ustawi prawidlowo.
+        _sc_start('update_available', '0')
+        log("Update cache + update_available wyczyszczone (restart)")
     except:
         pass
 
