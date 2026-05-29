@@ -1899,15 +1899,19 @@ def brand_logo_serve():
     abort(404)
 
 
+_system_stats_cache = {'data': None, 'ts': 0}
+
 @app.route('/api/system-stats')
 def api_system_stats():
     """System stats for Raspberry Pi dashboard"""
     import psutil, time
-    # v1.0.105: interval=None (nieblokujace) zamiast 0.5 - nie trzyma watka
-    # waitress 0.5s. Przy kilku otwartych kartach pollujacych co 15s + sync
-    # ofert, blokujace cpu_percent wyczerpywalo pule 8 watkow -> login czekal.
-    # interval=None zwraca % od ostatniego wywolania (lekko mniej dokladne,
-    # ale dla monitora UI wystarczy).
+    # v1.0.110: cache 10s. Dashboard polluje co 15s, ale przy wielu otwartych
+    # kartach (Adrian ma 5-6) kazda osobny request -> psutil disk/mem/temp/uptime
+    # liczone N razy. Cache 10s = jedno liczenie na ~10s niezaleznie od liczby kart.
+    _now = time.time()
+    if _system_stats_cache['data'] and (_now - _system_stats_cache['ts']) < 10:
+        return jsonify(_system_stats_cache['data'])
+    # v1.0.105: interval=None (nieblokujace) zamiast 0.5 - nie trzyma watka.
     cpu = psutil.cpu_percent(interval=None)
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage('/')
@@ -1941,7 +1945,7 @@ def api_system_stats():
         uptime_str = f"{hours}h {mins}m"
     else:
         uptime_str = f"{mins}m"
-    return jsonify({
+    _stats = {
         'cpu': round(cpu, 1),
         'ram_used': round(mem.used / (1024**3), 1),
         'ram_total': round(mem.total / (1024**3), 1),
@@ -1951,7 +1955,10 @@ def api_system_stats():
         'disk_percent': disk.percent,
         'temp': round(temp, 1),
         'uptime': uptime_str
-    })
+    }
+    _system_stats_cache['data'] = _stats
+    _system_stats_cache['ts'] = _now
+    return jsonify(_stats)
 
 @app.route("/api/phonkbot-stats")
 def api_phonkbot_stats():
@@ -7013,15 +7020,26 @@ def api_check_sales():
         conn = get_db()
         before = conn.execute('SELECT MAX(id) as last_id FROM sprzedaze').fetchone()
         last_id_before = before['last_id'] or 0
-        
-        # Sync tylko co 60 sekund - nie przy każdym sprawdzeniu
+
+        # v1.0.110 FIX: sync_orders() to network call do Allegro. Wczesniej
+        # SYNCHRONICZNIE w request co 60s -> trzymal watek waitress kilka s
+        # przy KAZDYM dashboardzie (poll 30s). Teraz w TLE (fire-and-forget) -
+        # request zwraca od razu z bazy. Cha-ching pokaze sie przy nastepnym
+        # pollu (max 30s pozniej) - akceptowalne. auto_sync_orders_loop tez
+        # syncuje w tle co 5 min jako backup.
         now = time.time()
         last_sync = getattr(api_check_sales, '_last_sync', 0)
         synced = 0
         if now - last_sync > 60:
             api_check_sales._last_sync = now
-            synced, _ = sync_orders(today_only=True)
-        
+            import threading as _cs_th
+            def _bg_sync_orders():
+                try:
+                    sync_orders(today_only=True)
+                except Exception:
+                    pass
+            _cs_th.Thread(target=_bg_sync_orders, daemon=True).start()
+
         new_sales = conn.execute('''
             SELECT s.id, s.cena, s.ilosc, s.kupujacy,
                    COALESCE(NULLIF(s.nazwa,''), p.nazwa, 'Produkt') as produkt_nazwa
@@ -8765,7 +8783,7 @@ if __name__ == '__main__':
     try:
         from waitress import serve
         log(f"Uzywam waitress (produkcyjny WSGI, bind={_bind_host})")
-        serve(app, host=_bind_host, port=5000, threads=8, channel_timeout=600)
+        serve(app, host=_bind_host, port=5000, threads=16, channel_timeout=600)
     except ImportError:
         # PHASE 2: fallback zostaje (lepiej dzialac na dev niz nie dzialac
         # u klienta), ale GLOSNO — produkcja na Flask dev serverze nie ma

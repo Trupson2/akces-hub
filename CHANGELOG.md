@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- perf(audyt): 3 fixy wydajnosci. (1) /api/check-sales: sync_orders() network call do Allegro przeniesiony do tla (byl blocking co 60s w request, dashboard poll 30s). (2) waitress threads 8->16 (mniej kolejkowania gdy background + polling zajmuja watki). (3) /api/system-stats cache 10s (multi-karta nie liczy psutil N razy).
 - fix(KRYTYCZNE): strona odswiezala sie w nieskonczonosc. Service Worker petla: activate->client.navigate(force reload kart) + controllerchange->location.reload() + reg.update() = nieskonczony cykl. Usuniete wszystkie 3 auto-reload. SW aktualizuje sie cicho.
 - feat(palety): wyrazny przycisk "Nowa paleta" na /palety + formularz /magazyn/paleta/nowa (nazwa, dostawca, cena, ilosc, typ). Klienci nie wiedzieli ze palety tworzy sie w scraperze.
 - fix(perf): masowe wystawianie z palety NIE czeka juz 1-2 min na sync 529 ofert. Sync byl SYNCHRONICZNY przed wystawianiem (pasek 0/1 stal 2 min). Teraz sync leci w tle (fire-and-forget), wystawianie startuje od razu. Background loop co 15 min utrzymuje swiezosc.
