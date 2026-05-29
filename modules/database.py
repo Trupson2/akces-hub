@@ -824,6 +824,13 @@ def init_db():
         conn.execute('CREATE INDEX IF NOT EXISTS idx_sprzedaze_status_data ON sprzedaze(status, data_sprzedazy)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_status_data ON produkty(status, data_dodania)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_paleta_status ON produkty(paleta_id, status)')
+        # v1.0.93: brakujace indeksy dla query ktorych nie pokrywal status/asin/ean
+        # - kod_magazynowy: skaner (lookup po sygnaturze MIX-00001), search, validacja unikalnosci
+        # - oferty.status: filter 'aktywna' w sync_oferty + cleanup zombie ofert
+        # - oferty.status_data: dedup pre-loop w paletomat sortuje po data_aktualizacji
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_produkty_kod_magazynowy ON produkty(kod_magazynowy)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_oferty_status ON oferty(status)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_oferty_status_data ON oferty(status, data_aktualizacji DESC)')
 
         conn.commit()
 
