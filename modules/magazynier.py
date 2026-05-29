@@ -3699,6 +3699,8 @@ def paleta_nowa():
             _goto = (request.form.get('goto', '') or '').strip()
             if _goto == 'scraper':
                 return redirect(f'/paletomat/scraper?paleta_id={pid}')
+            if _goto == 'import':
+                return redirect(f'/magazyn/import?paleta_id={pid}')
             return redirect(f'/palety?created={pid}')
         except Exception as e:
             return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>'
@@ -3745,16 +3747,21 @@ def paleta_nowa():
                 </select>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <button type="submit" name="goto" value="scraper" class="btn btn-ok" style="padding:13px 26px;font-weight:700;background:linear-gradient(135deg,#8ff5ff,#22d3ee);color:#0a0e16">
-                    <span class=material-symbols-outlined>add_circle</span> Utwórz + dodaj produkty
+                <button type="submit" name="goto" value="scraper" class="btn btn-ok" style="padding:13px 24px;font-weight:700;background:linear-gradient(135deg,#8ff5ff,#22d3ee);color:#0a0e16">
+                    <span class=material-symbols-outlined>qr_code_scanner</span> Utwórz + skaner / ASIN
                 </button>
-                <button type="submit" name="goto" value="palety" class="btn btn-secondary" style="padding:13px 22px;font-weight:600">
-                    <span class=material-symbols-outlined>add</span> Utwórz (sama paleta)
+                <button type="submit" name="goto" value="import" class="btn btn-ok" style="padding:13px 24px;font-weight:700;background:linear-gradient(135deg,#beee00,#84cc16);color:#0a0e16">
+                    <span class=material-symbols-outlined>upload_file</span> Utwórz + wgraj Excel
+                </button>
+                <button type="submit" name="goto" value="palety" class="btn btn-secondary" style="padding:13px 20px;font-weight:600">
+                    <span class=material-symbols-outlined>add</span> Sama paleta
                 </button>
                 <a href="/palety" class="back" style="margin-left:auto">← Anuluj</a>
             </div>
-            <div style="font-size:0.75rem;color:#64748b;margin-top:8px">
-                <b>Utwórz + dodaj produkty</b> → przejdziesz od razu do scrapera z wybraną paletą. <b>Sama paleta</b> → wrócisz do listy palet.
+            <div style="font-size:0.75rem;color:#64748b;margin-top:8px;line-height:1.6">
+                <b>Skaner / ASIN</b> → scraper z wybraną paletą (skanuj kody lub wpisz ASIN-y).<br>
+                <b>Wgraj Excel</b> → import produktów z pliku do tej palety.<br>
+                <b>Sama paleta</b> → wrócisz do listy (produkty dodasz później).
             </div>
         </div>
     </form>
@@ -5595,6 +5602,12 @@ def import_page():
     conn = get_db()
     palety = conn.execute('SELECT id, nazwa, dostawca, data_zakupu FROM palety ORDER BY data_dodania DESC').fetchall()
     
+    # v1.0.113: preselekcja palety z query (?paleta_id=) - po "Utworz + wgraj Excel"
+    try:
+        _preselect_pid = request.args.get('paleta_id', type=int)
+    except Exception:
+        _preselect_pid = None
+
     # Generuj opcje palet
     palety_options = '<option value="">-- Bez palety (luźne produkty) --</option>'
     palety_options += '<option value="__NEW__">➕ Utwórz nową paletę...</option>'
@@ -5605,7 +5618,8 @@ def import_page():
             label += f" ({p_dostawca})"
         if p_data:
             label += f" - {p_data}"
-        palety_options += f'<option value="{p_id}">{label}</option>'
+        _sel = ' selected' if _preselect_pid and p_id == _preselect_pid else ''
+        palety_options += f'<option value="{p_id}"{_sel}>{label}</option>'
     
     html = f'''
     <div class="hdr"><h1><span class=material-symbols-outlined>download</span> IMPORT</h1></div>
