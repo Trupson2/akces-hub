@@ -109,6 +109,11 @@ def create_backup():
         # Sync do Google Drive (w tle, nie blokuje)
         threading.Thread(target=sync_to_gdrive, args=(backup_path,), daemon=True).start()
 
+        # v1.0.103: Mirror do folderu off-site (OneDrive/Dropbox/pendrive)
+        # w tle. Klient ustawia sciezke w /magazyn/backup. Najprostszy off-site
+        # dla nietechnicznego klienta - OneDrive wbudowany w Windows.
+        threading.Thread(target=mirror_backup_to_folder, args=(backup_path,), daemon=True).start()
+
         return backup_path
         
     except Exception as e:
@@ -159,6 +164,64 @@ def sync_to_gdrive(backup_path=None):
         return False
     except Exception as e:
         print(f"[WARN] Błąd sync do Google Drive: {e}")
+        return False
+
+
+def mirror_backup_to_folder(backup_path=None):
+    """v1.0.103: Kopiuje backup do folderu off-site (OneDrive/Dropbox/pendrive).
+
+    Sciezka z config 'backup_mirror_path'. Jezeli pusta lub nie istnieje -
+    no-op (klient nie skonfigurowal). OneDrive/Dropbox desktop auto-syncuje
+    folder do chmury - klient ma kopie poza komputerem bez CLI/OAuth.
+
+    Trzyma w mirrorze wiecej backupow niz lokalnie (MAX_MIRROR=30) - off-site
+    kopie sa cenniejsze (chronia przed padnieciem dysku/ransomware).
+    """
+    try:
+        from .database import get_config
+        mirror_dir = (get_config('backup_mirror_path', '') or '').strip()
+        if not mirror_dir:
+            return False  # nie skonfigurowany - cicho
+
+        mirror_path = Path(mirror_dir)
+        # Folder musi istniec (OneDrive/Dropbox tworzy go przy instalacji).
+        # NIE tworzymy go sami - jak nie ma, to klient podal zla sciezke.
+        if not mirror_path.is_dir():
+            print(f"[MIRROR] Folder mirror nie istnieje: {mirror_dir} (sprawdz sciezke w /magazyn/backup)")
+            return False
+
+        if backup_path and Path(backup_path).exists():
+            dest = mirror_path / Path(backup_path).name
+            shutil.copy2(str(backup_path), str(dest))
+            print(f"[MIRROR] Backup skopiowany off-site: {dest}")
+        else:
+            # Brak konkretnego pliku - skopiuj najnowszy lokalny backup
+            local = sorted(
+                list(BACKUP_DIR.glob('akces_hub_backup_*.db')) +
+                list(BACKUP_DIR.glob('akces_hub_backup_*.db.enc')),
+                key=lambda x: x.stat().st_mtime, reverse=True
+            )
+            if local:
+                dest = mirror_path / local[0].name
+                shutil.copy2(str(local[0]), str(dest))
+                print(f"[MIRROR] Najnowszy backup skopiowany off-site: {dest}")
+
+        # Cleanup w mirrorze - trzymaj 30 najnowszych (off-site = wiecej historii)
+        try:
+            _MAX_MIRROR = 30
+            mirror_backups = sorted(
+                list(mirror_path.glob('akces_hub_backup_*.db')) +
+                list(mirror_path.glob('akces_hub_backup_*.db.enc')),
+                key=lambda x: x.stat().st_mtime, reverse=True
+            )
+            for old in mirror_backups[_MAX_MIRROR:]:
+                old.unlink()
+        except Exception as _ce:
+            print(f"[MIRROR] cleanup warn: {_ce}")
+
+        return True
+    except Exception as e:
+        print(f"[MIRROR] Blad mirror backup: {e}")
         return False
 
 

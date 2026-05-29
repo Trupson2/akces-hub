@@ -2118,15 +2118,18 @@ def szukaj():
 def backup_page():
     """Strona zarządzania backupami"""
     from modules.backup_manager import get_backups, create_backup, verify_backup
-    
+    from modules.database import get_config
+
     backups = get_backups()
-    
-    html = '''
+    _mirror_path = (get_config('backup_mirror_path', '') or '').strip()
+    _mirror_path_html = _mirror_path.replace('"', '&quot;')
+
+    html = f'''
     <div class="hdr">
         <h1><span class=material-symbols-outlined>save</span> BACKUP & PRZYWRACANIE</h1>
         <small>Zarządzanie kopiami zapasowymi bazy danych</small>
     </div>
-    
+
     <div class="card" style="padding:20px;margin-bottom:15px;background:rgba(190,238,0,0.1);border:2px solid #beee00">
         <div style="display:flex;align-items:center;gap:15px">
             <div style="font-size:2.5rem"><span class=material-symbols-outlined>save</span></div>
@@ -2137,7 +2140,29 @@ def backup_page():
             </div>
         </div>
     </div>
-    
+
+    <!-- v1.0.103: BACKUP OFF-SITE (mirror do OneDrive/Dropbox) -->
+    <div class="card" style="padding:20px;margin-bottom:15px;background:rgba(99,102,241,0.08);border:2px solid #6366f1">
+        <div style="font-weight:600;font-size:1.05rem;margin-bottom:8px;color:#a5b4fc">
+            <span class=material-symbols-outlined style="vertical-align:middle">cloud_sync</span> Backup poza komputerem (zalecane!)
+        </div>
+        <div style="font-size:0.83rem;color:#94a3b8;line-height:1.6;margin-bottom:14px">
+            Lokalny backup NIE chroni przed padnięciem dysku, kradzieżą lub ransomware. Wskaż folder
+            <b>OneDrive</b> lub <b>Dropbox</b> — po każdym backupie kopia trafi tam i automatycznie zsynchronizuje się do chmury.
+            <br><br>
+            <b>Jak znaleźć ścieżkę OneDrive:</b> otwórz Eksplorator → OneDrive → utwórz folder np. "AkcesBackup" → skopiuj ścieżkę z paska adresu (np. <code style="color:#a5b4fc">C:\\Users\\TwojaNazwa\\OneDrive\\AkcesBackup</code>).
+        </div>
+        <form action="/magazyn/backup/mirror-config" method="POST" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <input type="hidden" name="csrf_token" value="{generate_csrf()}">
+            <input type="text" name="mirror_path" value="{_mirror_path_html}" placeholder="C:\\Users\\...\\OneDrive\\AkcesBackup (pusty = wyłączone)"
+                style="flex:1;min-width:280px;padding:11px 14px;background:#0a0a0f;border:1px solid rgba(99,102,241,0.3);border-radius:8px;color:#e2e8f0;font-size:0.88rem">
+            <button type="submit" class="btn" style="background:#6366f1;padding:11px 22px;white-space:nowrap">
+                <span class=material-symbols-outlined style="vertical-align:middle;font-size:1rem">save</span> Zapisz
+            </button>
+        </form>
+        {'<div style="margin-top:10px;font-size:0.8rem;color:#22c55e"><span class=material-symbols-outlined style="vertical-align:middle;font-size:0.95rem">check_circle</span> Mirror aktywny: <code>' + _mirror_path_html + '</code> (30 ostatnich kopii)</div>' if _mirror_path else '<div style="margin-top:10px;font-size:0.8rem;color:#fbbf24"><span class=material-symbols-outlined style="vertical-align:middle;font-size:0.95rem">warning</span> Mirror off-site wyłączony — backup tylko lokalnie</div>'}
+    </div>
+
     <div style="display:flex;gap:10px;margin-bottom:20px">
         <button onclick="createBackup()" class="btn btn-ok" style="flex:1">
             <span class=material-symbols-outlined>save</span> Utwórz backup teraz
@@ -2293,6 +2318,49 @@ def backup_page():
     '''
     
     return render(html)
+
+
+@magazynier_bp.route('/backup/mirror-config', methods=['POST'])
+def backup_mirror_config():
+    """v1.0.103: Zapisz sciezke mirror backup (OneDrive/Dropbox folder)."""
+    from modules.database import set_config
+    import os as _os
+    mirror_path = (request.form.get('mirror_path', '') or '').strip()
+
+    # Walidacja: jezeli niepusty, folder musi istniec (nie tworzymy sami -
+    # klient ma wskazac istniejacy OneDrive/Dropbox folder)
+    if mirror_path:
+        if not _os.path.isdir(mirror_path):
+            return render(
+                '<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>'
+                f'<div class="alert alert-err">Folder nie istnieje: <code>{mirror_path[:200]}</code><br><br>'
+                'Sprawdź ścieżkę. Najpierw utwórz folder w OneDrive/Dropbox, potem skopiuj ścieżkę z paska adresu Eksploratora.</div>'
+                '<a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+        # Test zapisu - czy mamy uprawnienia
+        try:
+            _test = _os.path.join(mirror_path, '.akces_write_test')
+            with open(_test, 'w') as _f:
+                _f.write('ok')
+            _os.remove(_test)
+        except Exception as _we:
+            return render(
+                '<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>'
+                f'<div class="alert alert-err">Brak uprawnień do zapisu w: <code>{mirror_path[:200]}</code><br>{str(_we)[:150]}</div>'
+                '<a href="/magazyn/backup" class="btn btn-p">← Powrót</a>')
+
+    set_config('backup_mirror_path', mirror_path)
+
+    # Jezeli wlasnie wlaczono - zrob od razu mirror najnowszego backupu
+    if mirror_path:
+        try:
+            from modules.backup_manager import mirror_backup_to_folder
+            import threading as _th
+            _th.Thread(target=mirror_backup_to_folder, daemon=True).start()
+        except Exception:
+            pass
+
+    return redirect('/magazyn/backup')
+
 
 @magazynier_bp.route('/backup/upload', methods=['POST'])
 def backup_upload():
