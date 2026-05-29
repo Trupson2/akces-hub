@@ -3751,19 +3751,27 @@ def generator_mass_create_from_paleta_stream():
             yield "data: " + json.dumps({'type': 'done'}) + "\n\n"
             return
         
-        # === SYNC: Synchronizuj statusy ofert z Allegro przed wystawianiem ===
+        # === SYNC: v1.0.107 FIX - NIE blokuj wystawiania pełnym syncem 529 ofert ===
+        # Wczesniej: sync_offers_status() SYNCHRONICZNIE przed wystawianiem ->
+        # pobieral WSZYSTKIE 529 ofert (1-2 min) -> pasek 0/1 stal 2 min zanim
+        # cokolwiek sie wystawilo. Adrian: "masowe wystawianie dlugo mieli".
+        #
+        # Sync jest REDUNDANTNY: auto_sync_offers_loop (app.py) syncuje co 15 min
+        # w tle, wiec tabela 'oferty' jest swieza. Dedup ponizej dziala na bazie.
+        # Tu odpalamy sync w TLE (fire-and-forget) zeby odswiezyc na nastepny raz,
+        # ale NIE czekamy - wystawianie startuje natychmiast.
         try:
-            from .allegro_api import sync_offers_status
-            yield "data: " + json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined>sync</span> Synchronizacja ofert z Allegro...', 'color': '#3b82f6'}) + "\n\n"
-            sync_result = sync_offers_status()
-            if sync_result and not sync_result.get('error'):
-                _synced = sync_result.get('updated', 0)
-                _ended = sync_result.get('ended', 0)
-                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>check_circle</span> Sync: {sync_result.get("active", 0)} aktywnych, {_ended} zakończonych, {_synced} zaktualizowanych', 'color': '#22c55e'}) + "\n\n"
-            else:
-                yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>warning</span> Sync: {sync_result.get("error", "?")}', 'color': '#f59e0b'}) + "\n\n"
+            import threading as _sync_th
+            from .allegro_api import sync_offers_status as _sos
+            def _bg_sync():
+                try:
+                    _sos()
+                except Exception:
+                    pass
+            _sync_th.Thread(target=_bg_sync, daemon=True).start()
+            yield "data: " + json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined>sync</span> Sync ofert w tle (nie blokuje) — wystawiam od razu', 'color': '#3b82f6'}) + "\n\n"
         except Exception as e:
-            yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>warning</span> Sync error: {str(e)[:50]}', 'color': '#f59e0b'}) + "\n\n"
+            yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>warning</span> Sync bg error: {str(e)[:50]}', 'color': '#f59e0b'}) + "\n\n"
 
         # === BATCH DEDUP: grupuj produkty z tym samym ASIN — sumuj ilości ===
         _seen_asins = {}  # asin -> index w products

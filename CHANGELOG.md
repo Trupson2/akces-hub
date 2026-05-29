@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- fix(perf): masowe wystawianie z palety NIE czeka juz 1-2 min na sync 529 ofert. Sync byl SYNCHRONICZNY przed wystawianiem (pasek 0/1 stal 2 min). Teraz sync leci w tle (fire-and-forget), wystawianie startuje od razu. Background loop co 15 min utrzymuje swiezosc.
 - fix(405): GET na /paletomat/generator/<asin>/create (F5/Back po wystawieniu pojedynczym) dawal 405 Method Not Allowed. Teraz GET -> redirect do karty produktu. Endpoint POST dziala bez zmian.
 - fix(perf): KLUCZOWE - login wisial bo sync 529 ofert robil 1 commit na koncu petli = write-lock na ~kilkanascie s. Login (write) czekal. Batch commit co 50 ofert zwalnia lock. + cpu_percent nieblokujace (nie zjada watka 0.5s) + /brand-logo endpoint (zero 404 spam).
 - fix(version): GIT install zawsze ufa git HEAD (nie last_install_commit). Manual git pull aktualizuje wersje + chowa baner. Bug v1.0.97-103: sidebar 'v1.0.103+fc9421f' (stary commit) bo last_install_commit zostawal stale przy manual pull. last_install_commit teraz tylko dla ZIP install.
