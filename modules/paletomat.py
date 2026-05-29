@@ -6013,8 +6013,25 @@ def generator_detail(asin):
     )
     
 
-@paletomat_bp.route('/generator/<asin>/create', methods=['POST'])
+@paletomat_bp.route('/generator/<asin>/create', methods=['GET', 'POST'])
 def generator_create(asin):
+    # v1.0.106 FIX: GET na ten URL (F5/Back po wystawieniu) dawal 405 Method
+    # Not Allowed - endpoint byl POST-only. Teraz GET -> redirect do karty
+    # produktu (po asin) lub listy produktow. Analogicznie do scraper/file fix.
+    if request.method == 'GET':
+        try:
+            _conn = get_db()
+            _row = _conn.execute(
+                "SELECT kod_magazynowy FROM produkty WHERE UPPER(asin) = UPPER(?) "
+                "AND kod_magazynowy IS NOT NULL AND kod_magazynowy != '' "
+                "ORDER BY data_dodania DESC LIMIT 1", (asin,)
+            ).fetchone()
+            if _row and _row['kod_magazynowy']:
+                return redirect(f"/magazyn/produkt/{_row['kod_magazynowy']}")
+        except Exception:
+            pass
+        return redirect('/magazyn/produkty')
+
     tytul = request.form.get('tytul', '')[:75]
     cena = float(request.form.get('cena_allegro', 0) or 0)
     ilosc = int(request.form.get('ilosc', 1) or 1)

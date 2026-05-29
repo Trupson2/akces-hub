@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- fix(405): GET na /paletomat/generator/<asin>/create (F5/Back po wystawieniu pojedynczym) dawal 405 Method Not Allowed. Teraz GET -> redirect do karty produktu. Endpoint POST dziala bez zmian.
 - fix(perf): KLUCZOWE - login wisial bo sync 529 ofert robil 1 commit na koncu petli = write-lock na ~kilkanascie s. Login (write) czekal. Batch commit co 50 ofert zwalnia lock. + cpu_percent nieblokujace (nie zjada watka 0.5s) + /brand-logo endpoint (zero 404 spam).
 - fix(version): GIT install zawsze ufa git HEAD (nie last_install_commit). Manual git pull aktualizuje wersje + chowa baner. Bug v1.0.97-103: sidebar 'v1.0.103+fc9421f' (stary commit) bo last_install_commit zostawal stale przy manual pull. last_install_commit teraz tylko dla ZIP install.
 - feat(backup): mirror off-site do folderu OneDrive/Dropbox. Config backup_mirror_path w /magazyn/backup. Po kazdym backupie kopia trafia do wskazanego folderu (auto-sync do chmury). Trzyma 30 kopii off-site. Walidacja sciezki + test zapisu przed zapisaniem. Najprostszy off-site dla nietechnicznego klienta - bez CLI/OAuth.
