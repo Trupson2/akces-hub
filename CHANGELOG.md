@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- fix(version): walidacja last_install_commit jako git hash (7-40 hex). Bug v1.0.97 zapisywal VERSION string '1.0.100' jako commit -> sidebar 'v1.0.100+1.0.100' + baner 'Twoja: 1.0.100' (mismatch). Startup cleanup invalid value.
 - feat(allegro): /allegro/duplikaty - batch cleanup duplikatow ofert. Grupuje po ASIN+stan (lub nazwa_norm+stan dla bez-ASIN), pre-zaznacza do zakonczenia wszystkie OPROCZ tej z najwieksza ilosc sprzedazy (chronione). Batch PATCH publication.status=ENDED przez Allegro API. Kafelek w /narzedzia.
 - fix(update): wylaczono auto-regenerate CHANGELOG.md przy starcie Flask. Plik byl tracked w gicie ale modyfikowany przy kazdym restartcie -> manualny 'git pull' padal z 'local changes would be overwritten by merge'. Endpoint update mial workaround, manual SSH nie.
 - fix(banner): baner gorny zawsze sync z dashboard widgetem. Sync update_available z cache.has_update przy kazdym renderze + reset przy starcie. Bez tego po manualnym git pull baner wisial mimo 'System aktualny'.

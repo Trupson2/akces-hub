@@ -91,17 +91,27 @@ except Exception as e:
 # ============================================================
 # WERSJA I KONFIGURACJA
 # ============================================================
+def _is_commit_hash(s):
+    """v1.0.101: walidacja czy string to git commit hash (7-40 hex chars).
+
+    Bez tego v1.0.97 zapisywal VERSION string ('1.0.100') jako last_install_commit
+    -> sidebar pokazywal mylacy 'v1.0.100+1.0.100' + banner has_update=True
+    bo string-compare '1.0.100' != git_hash '07a5b7f'.
+    """
+    if not s or not isinstance(s, str):
+        return False
+    s = s.strip()
+    if len(s) < 7 or len(s) > 40:
+        return False
+    return all(c in '0123456789abcdefABCDEF' for c in s)
+
+
 def _get_version():
     """Wersja z pliku VERSION + commit hash.
 
-    v1.0.97 (FIX): priorytetuj `last_install_commit` z config nad git rev-parse.
-    Powod: ZIP install path nadpisuje VERSION nie ruszajac .git folderu,
-    a git rev-parse zwraca STARY commit hash sprzed installu. Sidebar pokazywal
-    'v1.0.96+78c71d1' (78c71d1 = commit v1.0.92 z czasu sprzed installu).
-
-    Priorytet:
-    1. config['last_install_commit'] - ustawiany po git pull LUB ZIP install
-    2. git rev-parse HEAD (fallback dla swiezej instalki)
+    v1.0.97: priorytetuj `last_install_commit` z config nad git rev-parse.
+    v1.0.101 (FIX): walidacja - tylko jezeli to faktycznie commit hash,
+    nie VERSION string.
     """
     ver = '1.0.0'
     try:
@@ -110,16 +120,16 @@ def _get_version():
             ver = open(vf).read().strip()
     except:
         pass
-    # 1. Priorytet: last_install_commit z config (set po kazdym udanym install)
+    # 1. Priorytet: last_install_commit z config (ale TYLKO jezeli to git hash)
     try:
         from modules.database import get_config
         _last_install = get_config('last_install_commit', '').strip()
-        if _last_install:
+        if _is_commit_hash(_last_install):
             ver += f'+{_last_install[:7]}'
             return ver
     except Exception:
         pass
-    # 2. Fallback: git rev-parse (swieza instalka albo brak DB)
+    # 2. Fallback: git rev-parse (swieza instalka albo brak DB albo invalid hash)
     try:
         import subprocess
         r = subprocess.run(['git', 'log', '-1', '--pretty=format:%h'],
@@ -246,12 +256,12 @@ def _git_update_check_async():
                               cwd=_app_dir).stdout.strip() or 'main'
         _sp.run(['git', 'fetch', 'origin', _cur_branch, '--quiet'],
                 capture_output=True, timeout=15, cwd=_app_dir)
-        # v1.0.97 FIX: local hash z last_install_commit (jezeli set) zeby
-        # ZIP install na git folderze NIE generowal fantomowych update'ow.
-        # Po ZIP install: VERSION nadpisany, .git nieruszony - git rev-parse
-        # zwracalby stary commit -> has_update zawsze True.
+        # v1.0.97 + v1.0.101: local z last_install_commit (jezeli VALID hash)
+        # zeby ZIP install na git folderze NIE generowal fantomowych update'ow.
+        # Walidacja przez _is_commit_hash chroni przed bugiem v1.0.97 gdzie
+        # VERSION string ('1.0.100') byl traktowany jako commit hash.
         _last_install = get_config('last_install_commit', '').strip()
-        if _last_install and len(_last_install) >= 7:
+        if _is_commit_hash(_last_install):
             local = _last_install
         else:
             local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
@@ -3070,24 +3080,25 @@ def system_update_from_public():
                      {'stage': 'ok', 'files_updated': result.get('files_updated', 0),
                       'from': info['current'], 'to': info['latest']}, success=True)
 
-    # v1.0.97 FIX: wyczysc banner + cache + zapisz commit hash z VERSION.
-    # Bez tego: po ZIP install VERSION file nadpisany ale .git stary,
-    # _get_version() mieszal '1.0.96+stare_git_hash' -> mismatch + bg check
-    # za 120s znow zglaszal update_available bo git HEAD != origin.
+    # v1.0.97 + v1.0.101 FIX: wyczysc banner + cache.
+    # ZIP install nie ma latwego dostepu do git commit hash nowej wersji,
+    # wiec NIE ustawiamy last_install_commit (VERSION string mylil _get_version
+    # i porownanie hash w _git_update_check_async). _get_version fallback do
+    # git rev-parse zwroci poprawny commit (post-extract VERSION + git HEAD
+    # ze starego .git folderu - jezeli klient git install) lub pusty (ZIP only).
     try:
         from modules.database import set_config
         import json as _json
         set_config('update_available', '0')
-        # last_install_commit = nowa wersja (z VERSION na dysku)
+        # NIE: set_config('last_install_commit', ...) - VERSION nie jest commit hash
+        # Resetuj cache zeby bg check zrobil fresh
         _latest_ver = info.get('latest', '') or ''
-        set_config('last_install_commit', _latest_ver[:40])
-        # Resetuj cache zeby bg check zrobil fresh, NIE pamietal starego stanu
         set_config('update_check_cache', _json.dumps({
             'checked_at': _t.time(),
             'has_update': False,
             'remote_msg': '',
-            'remote_hash': _latest_ver,
-            'local_hash': _latest_ver,
+            'remote_hash': '',  # nie znamy commit hash po ZIP, fresh bg check ustawi
+            'local_hash': '',
             'notified': False,
             'is_zip': True,
         }))
@@ -8695,12 +8706,19 @@ if __name__ == '__main__':
 
     # Reset cache aktualizacji przy starcie — żeby od razu sprawdzał
     try:
-        from modules.database import set_config as _sc_start
+        from modules.database import set_config as _sc_start, get_config as _gc_start
         _sc_start('update_check_cache', '')
         # v1.0.98 FIX: tez wyzeruj update_available zeby baner nie wisial
         # od razu po restartcie (jak Adrian po manualnym git pull + restart).
         # Pierwszy F5 na dashboardzie odpali bg check i ustawi prawidlowo.
         _sc_start('update_available', '0')
+        # v1.0.101 FIX: wyczysc invalid last_install_commit (np. VERSION string
+        # zapisany przez bug v1.0.97). Po fixie _get_version() falluje do git
+        # rev-parse ktore zwroci prawidlowy commit hash.
+        _li = _gc_start('last_install_commit', '').strip()
+        if _li and not _is_commit_hash(_li):
+            _sc_start('last_install_commit', '')
+            log(f"Last_install_commit (invalid '{_li[:20]}') wyczyszczone")
         log("Update cache + update_available wyczyszczone (restart)")
     except:
         pass
