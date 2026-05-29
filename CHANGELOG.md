@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- ux(W4): port health-check przed os._exit po update -> klient nie widzi 'app nie dziala' przez 5-10s gdy Defender skanuje pythonw.exe. + docs/CLIENT_INSTALL_WINDOWS.md - pelna instrukcja dla klienta koncowego.
 - sec(W1+W3+S5): vendor-notify proxy (klient nigdy nie ma vendor_bot_token) + DB backup VACUUM INTO przed update + auto-rollback przy failed swap. Patrz commit.
 - sec(critical): K1+K3+K4 security fixy przed dostawa SaaS klientom. Patrz commit message.
 - perf(db): 3 brakujace indeksy - produkty.kod_magazynowy (skaner/search), oferty.status, oferty(status, data_aktualizacji). Skaner ~10x szybszy przy 50K produktow.

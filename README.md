@@ -30,6 +30,11 @@ python app.py            # serwer dev — TYLKO do testów
 Produkcyjnie NIE uruchamiaj `python app.py` — użyj waitress+systemd
 wg `docs/DEPLOYMENT.md`.
 
+### Wariant C — Windows ZIP (klient końcowy)
+Pakiet `akces-hub-XYZ.zip` + `INSTALL.bat` dla klienta hostującego u siebie.
+Pełna instrukcja: [`docs/CLIENT_INSTALL_WINDOWS.md`](docs/CLIENT_INSTALL_WINDOWS.md) —
+embedded Python, autostart, update banner, Cloudflare Tunnel, backup, troubleshooting.
+
 **Baza danych tworzy się AUTOMATYCZNIE** przy pierwszym starcie
 (`modules/database.py` → `init_db()`). Nie ma osobnego skryptu init.
 

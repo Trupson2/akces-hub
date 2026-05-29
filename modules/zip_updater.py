@@ -565,6 +565,27 @@ def install_update(zip_path: str, signature_hex: str = '') -> Dict[str, Any]:
     return result
 
 
+def _wait_for_port(host: str, port: int, timeout: float = 15.0) -> bool:
+    """v1.0.96 (W4): Health check przed ubiciem starego procesu.
+
+    Próbuje TCP connect do nowego procesu co 250ms az do timeout.
+    Zwraca True gdy nowy proces zaczal nasluchiwac, False gdy timeout.
+
+    Bez tego klient widzial 'aplikacja nie dziala' przez 5-10s na Windows
+    bo Defender skanowal swiezo ekstraktowany pythonw.exe a my zabilismy
+    stary po 1s nie sprawdzajac.
+    """
+    import socket
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            time.sleep(0.25)
+    return False
+
+
 def restart_python_process():
     """Restart obecnego procesu Pythona (Windows + Linux).
 
@@ -574,6 +595,10 @@ def restart_python_process():
     ZAMIAST: uzyj subprocess.Popen() zeby odpalic NOWY proces Pythona
     z tym samym app.py, potem os._exit(0) na starym. Nowy proces zyje
     niezaleznie od konsoli (DETACHED_PROCESS na Windows).
+
+    v1.0.96 (W4): port health-check przed os._exit, zeby uniknac
+    "aplikacja nie dziala" przez 5-10s na Windows (Defender skanuje
+    pythonw.exe nowo ekstraktowany).
 
     Wywoluj W TLE PO wyslaniu response, np:
         threading.Thread(target=lambda: (time.sleep(2), restart_python_process()),
@@ -600,11 +625,23 @@ def restart_python_process():
                 cwd=_app_dir(),
                 close_fds=True,
             )
-            # Daj nowemu procesowi 1s na bind portu, potem zabij obecny
-            time.sleep(1)
+            # v1.0.96 (W4): czekaj max 15s aż nowy proces zacznie nasluchiwac.
+            # Defender + pythonw.exe pierwszy start = 5-10s normalne.
+            # Probuj 127.0.0.1 (bind=127.0.0.1 dla ZIP install z v1.0.94).
+            ready = _wait_for_port('127.0.0.1', 5000, timeout=15.0)
+            if not ready:
+                # Sprobuj 0.0.0.0 binding (Pi/systemd warianty) - nie z Windows
+                # ale jako fallback
+                ready = _wait_for_port('localhost', 5000, timeout=3.0)
+            if not ready:
+                # Nowy proces sie nie odpalil w 18s. Lepiej zostawic stary zywy
+                # niz zabic w slepo - klient zostalby z brokenem.
+                print('[zip_updater] WARN: nowy proces nie nasluchuje po 18s - NIE zabijam starego')
+                return
+            print(f'[zip_updater] nowy proces gotowy, zabijam stary (PID {os.getpid()})')
             os._exit(0)
         else:
-            # Linux/Mac: execv (replace in place)
+            # Linux/Mac: execv (replace in place) - atomic, nie ma race
             os.execv(sys.executable, [sys.executable] + sys.argv)
     except Exception as e:
         print(f'[zip_updater] restart failed: {e}')
