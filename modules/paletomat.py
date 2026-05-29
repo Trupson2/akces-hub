@@ -1093,10 +1093,7 @@ if('serviceWorker' in navigator){
             });
         });
     }).catch(function(e){console.log('SW fail',e);});
-    var refreshing=false;
-    navigator.serviceWorker.addEventListener('controllerchange',function(){
-        if(!refreshing){refreshing=true; location.reload();}
-    });
+    // v1.0.109 FIX: usunieto location.reload() na controllerchange (petla odswiezania)
 }
 </script>''' + CSS + '''<link rel="stylesheet" href="/static/kiosk.css"></head><body>
 <script>if(localStorage.getItem('kiosk_mode')==='1')document.body.classList.add('kiosk');</script>

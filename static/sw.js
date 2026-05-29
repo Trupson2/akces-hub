@@ -47,16 +47,11 @@ self.addEventListener('activate', (event) => {
         })
       );
     }).then(() => self.clients.claim())
-    .then(() => {
-      // Force reload wszystkich otwartych kart żeby wyrzucic stary kod ze starym SW
-      return self.clients.matchAll({type: 'window'}).then((clients) => {
-        clients.forEach((client) => {
-          if (client.url && 'navigate' in client) {
-            client.navigate(client.url).catch(() => {});
-          }
-        });
-      });
-    })
+    // v1.0.109 FIX: USUNIETO force client.navigate() reload wszystkich kart.
+    // Powodowal PETLE odswiezania: activate -> navigate karty -> reg.update()
+    // -> install -> activate -> navigate -> ... bez konca. Adrian: "caly czas
+    // cos odswieza". Nowy SW przejmie kontrole przy nastepnej naturalnej
+    // nawigacji (clients.claim wystarcza) - bez wymuszania reload.
   );
 });
 

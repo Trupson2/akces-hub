@@ -141,10 +141,10 @@ if('serviceWorker' in navigator){
                 });
             });
         }).catch(function(e){console.log('SW fail',e);});
-        var refreshing=false;
-        navigator.serviceWorker.addEventListener('controllerchange',function(){
-            if(!refreshing){refreshing=true; location.reload();}
-        });
+        // v1.0.109 FIX: USUNIETO location.reload() na controllerchange.
+        // Powodowal petle odswiezania (controllerchange -> reload -> reg.update
+        // -> nowy SW -> controllerchange -> reload...). Nowy SW przejmie kontrole
+        // przy nastepnej naturalnej nawigacji - bez wymuszania reload.
     }
 }
 </script>
