@@ -1,5 +1,9 @@
 # Historia zmian (auto-generated)
 
+## 29.05.2026
+
+- fix(opis-ai): Gemini odpala ZAWSZE gdy api_key, nawet bez bullet_points z Amazon. Produkty bez ASIN (kierownice MOZA, OLX) szly do fallback ktory robi 1-zdanie 'produkt wyrozniajacy sie solidnym wykonaniem'. Teraz Gemini z samej nazwy + typu + categorii pisze pelny opis.
+
 ## 28.05.2026
 
 - fix(version): walidacja last_install_commit jako git hash (7-40 hex). Bug v1.0.97 zapisywal VERSION string '1.0.100' jako commit -> sidebar 'v1.0.100+1.0.100' + baner 'Twoja: 1.0.100' (mismatch). Startup cleanup invalid value.

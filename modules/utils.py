@@ -1246,11 +1246,18 @@ def generuj_opis_ai(nazwa, kategoria='inne', bullet_points=None, gemini_key=None
         return generuj_opis_fallback(nazwa, kategoria)
     
     api_key = gemini_key or get_config('gemini_api_key', '')
-    
-    if api_key and bullet_points and len(bullet_points) > 0:
+
+    # v1.0.102 FIX: odpal Gemini ZAWSZE gdy api_key, nawet bez bullet_points.
+    # Wczesniej Kierownica MOZA (bez ASIN -> brak Amazon scrapingu -> brak bullet_points)
+    # szla do fallback ktory robi 1-zdanie 'produkt wyrozniajacy sie solidnym wykonaniem'.
+    # Gemini z samej nazwy + typ wygeneruje rozsadny opis.
+    if api_key:
         try:
-            # Formatuj bullet points do promptu
-            features_text = '\n'.join([f'- {bp}' for bp in bullet_points])
+            # Formatuj bullet points do promptu (lub placeholder gdy brak)
+            if bullet_points and len(bullet_points) > 0:
+                features_text = '\n'.join([f'- {bp}' for bp in bullet_points])
+            else:
+                features_text = '(BRAK listy cech z Amazon - opis na podstawie samej nazwy produktu, typu i wiedzy o kategorii. Napisz sensowny opis bez wymyslania konkretnych parametrow typu wymiary/waga.)'
             
             # Określ typ produktu na podstawie nazwy
             nazwa_lower = nazwa.lower()
