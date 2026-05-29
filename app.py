@@ -92,7 +92,17 @@ except Exception as e:
 # WERSJA I KONFIGURACJA
 # ============================================================
 def _get_version():
-    """Wersja z pliku VERSION + git commit hash"""
+    """Wersja z pliku VERSION + commit hash.
+
+    v1.0.97 (FIX): priorytetuj `last_install_commit` z config nad git rev-parse.
+    Powod: ZIP install path nadpisuje VERSION nie ruszajac .git folderu,
+    a git rev-parse zwraca STARY commit hash sprzed installu. Sidebar pokazywal
+    'v1.0.96+78c71d1' (78c71d1 = commit v1.0.92 z czasu sprzed installu).
+
+    Priorytet:
+    1. config['last_install_commit'] - ustawiany po git pull LUB ZIP install
+    2. git rev-parse HEAD (fallback dla swiezej instalki)
+    """
     ver = '1.0.0'
     try:
         vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VERSION')
@@ -100,6 +110,16 @@ def _get_version():
             ver = open(vf).read().strip()
     except:
         pass
+    # 1. Priorytet: last_install_commit z config (set po kazdym udanym install)
+    try:
+        from modules.database import get_config
+        _last_install = get_config('last_install_commit', '').strip()
+        if _last_install:
+            ver += f'+{_last_install[:7]}'
+            return ver
+    except Exception:
+        pass
+    # 2. Fallback: git rev-parse (swieza instalka albo brak DB)
     try:
         import subprocess
         r = subprocess.run(['git', 'log', '-1', '--pretty=format:%h'],
@@ -219,11 +239,20 @@ def _git_update_check_async():
                               cwd=_app_dir).stdout.strip() or 'main'
         _sp.run(['git', 'fetch', 'origin', _cur_branch, '--quiet'],
                 capture_output=True, timeout=15, cwd=_app_dir)
-        local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
-                        cwd=_app_dir).stdout.strip()
+        # v1.0.97 FIX: local hash z last_install_commit (jezeli set) zeby
+        # ZIP install na git folderze NIE generowal fantomowych update'ow.
+        # Po ZIP install: VERSION nadpisany, .git nieruszony - git rev-parse
+        # zwracalby stary commit -> has_update zawsze True.
+        _last_install = get_config('last_install_commit', '').strip()
+        if _last_install and len(_last_install) >= 7:
+            local = _last_install
+        else:
+            local = _sp.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=5,
+                            cwd=_app_dir).stdout.strip()
         remote = _sp.run(['git', 'rev-parse', f'origin/{_cur_branch}'], capture_output=True, text=True, timeout=5,
                          cwd=_app_dir).stdout.strip()
-        has_update = local != remote
+        # Porownanie: oba pelne SHA (40) lub oba 7-char short
+        has_update = local[:7] != remote[:7]
         remote_msg = ''
         remote_hash = ''
         if has_update:
@@ -2894,6 +2923,9 @@ def system_update():
                 'local_hash': commit_hash,
                 'notified': False
             }))
+            # v1.0.97 FIX: zapamietaj commit hash do _get_version()
+            # Bez tego sidebar pokazywal stary commit z git rev-parse
+            _sc('last_install_commit', commit_hash or '')
         except:
             pass
 
@@ -3020,10 +3052,27 @@ def system_update_from_public():
                      {'stage': 'ok', 'files_updated': result.get('files_updated', 0),
                       'from': info['current'], 'to': info['latest']}, success=True)
 
-    # Wyczysc banner update
+    # v1.0.97 FIX: wyczysc banner + cache + zapisz commit hash z VERSION.
+    # Bez tego: po ZIP install VERSION file nadpisany ale .git stary,
+    # _get_version() mieszal '1.0.96+stare_git_hash' -> mismatch + bg check
+    # za 120s znow zglaszal update_available bo git HEAD != origin.
     try:
         from modules.database import set_config
+        import json as _json
         set_config('update_available', '0')
+        # last_install_commit = nowa wersja (z VERSION na dysku)
+        _latest_ver = info.get('latest', '') or ''
+        set_config('last_install_commit', _latest_ver[:40])
+        # Resetuj cache zeby bg check zrobil fresh, NIE pamietal starego stanu
+        set_config('update_check_cache', _json.dumps({
+            'checked_at': _t.time(),
+            'has_update': False,
+            'remote_msg': '',
+            'remote_hash': _latest_ver,
+            'local_hash': _latest_ver,
+            'notified': False,
+            'is_zip': True,
+        }))
     except Exception:
         pass
 
