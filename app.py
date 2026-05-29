@@ -119,12 +119,25 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 # ── ProxyFix: Cloudflare Tunnel / nginx / ngrok przekazują prawdziwy IP w X-Forwarded-For.
 # Bez tego request.remote_addr == '127.0.0.1' dla WSZYSTKICH userów przez tunnel,
 # co łamie: rate-limiter per-IP, auto-login LAN, block_unauthenticated_external. ──
-try:
-    from werkzeug.middleware.proxy_fix import ProxyFix
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-    print("[OK] ProxyFix aktywny (X-Forwarded-For, X-Forwarded-Proto)")
-except Exception as _e:
-    print(f"[WARN] ProxyFix nie załadowany: {_e}")
+#
+# v1.0.94 SECURITY (K3): ProxyFix WARUNKOWY - tylko gdy faktycznie jestesmy za
+# upstream proxy. Desktop ZIP install (Windows klient bez systemd) NIE ma upstream
+# proxy -> ProxyFix bezwarunkowy umozliwia spoofing X-Forwarded-For:127.0.0.1
+# z LAN, omijajac block_unauthenticated_external i ujawniajac /api/key.
+_is_proxied_deployment = (
+    os.environ.get('FLASK_ENV') == 'production'
+    or os.path.exists('/etc/systemd/system/akces-hub.service')
+    or os.path.exists('/etc/systemd/system/akceshub.service')
+)
+if _is_proxied_deployment:
+    try:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+        print("[OK] ProxyFix aktywny (systemd/production deployment)")
+    except Exception as _e:
+        print(f"[WARN] ProxyFix nie załadowany: {_e}")
+else:
+    print("[INFO] ProxyFix wylaczony (desktop ZIP install - brak upstream proxy)")
 
 # Max rozmiar uploadu — chroni przed DoS (zapychanie RAM/dysku)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB
@@ -3150,9 +3163,45 @@ def system_update_zip():
 # ============================================================
 # ONBOARDING — kreator pierwszej konfiguracji
 # ============================================================
+
+def _setup_endpoint_guard():
+    """v1.0.94 SECURITY (K1+K4): chroni /setup/* przed unauthorized writes.
+
+    Logika:
+    - Pierwsza konfiguracja (brak userow): dopusc TYLKO z localhost (127.0.0.1).
+      Bez tego ktokolwiek w LAN moglby wyscignac klienta do setup i podmienic
+      branding/logo lub zaloyzc admin konto na siebie.
+    - Po pierwszym setupie: wymaga admin sesji (jak require_admin).
+
+    Returns: None gdy OK, Response gdy block.
+    """
+    from modules.auth import _has_any_users
+    if not _has_any_users():
+        # First-setup phase - tylko localhost
+        _real_ip = request.remote_addr or ''
+        if _real_ip not in ('127.0.0.1', '::1', 'localhost'):
+            from flask import abort
+            abort(403, 'First setup tylko z localhost (race protection)')
+        return None
+    # Po pierwszym setupie - wymaga admin
+    if not session.get('user_id'):
+        if request.method != 'GET' or 'application/json' in (request.content_type or ''):
+            return jsonify({'ok': False, 'error': 'Wymagane logowanie'}), 401
+        return redirect(url_for('auth.login', next='/setup'))
+    if (session.get('rola') or '').lower() != 'admin':
+        if 'application/json' in (request.content_type or '') or request.method != 'GET':
+            return jsonify({'ok': False, 'error': 'Tylko admin'}), 403
+        from flask import abort
+        abort(403)
+    return None
+
+
 @app.route('/setup')
 def setup_wizard():
     """Wizard po pierwszym logowaniu — branding, moduły, API"""
+    _block = _setup_endpoint_guard()
+    if _block is not None:
+        return _block
     from modules.database import get_config
     return render_template('setup.html',
         version=VERSION,
@@ -3165,6 +3214,9 @@ def setup_wizard():
 @app.route('/setup/save', methods=['POST'])
 def setup_save():
     """Zapisz konfigurację z wizarda"""
+    _block = _setup_endpoint_guard()
+    if _block is not None:
+        return _block
     from modules.database import set_config
     data = request.get_json() or {}
     if data.get('brand_name'):
@@ -3177,6 +3229,9 @@ def setup_save():
 @app.route('/setup/logo', methods=['POST'])
 def setup_logo():
     """Upload logo z wizarda"""
+    _block = _setup_endpoint_guard()
+    if _block is not None:
+        return _block
     from PIL import Image
     f = request.files.get('logo')
     if not f:
@@ -8490,14 +8545,19 @@ if __name__ == '__main__':
     except:
         pass
 
-    log("Serwer startuje: http://0.0.0.0:5000")
+    # v1.0.94 SECURITY (K3+K4): bind warunkowy.
+    # - systemd/production (Pi z Cloudflare tunnel) -> 0.0.0.0 (LAN/tunnel dostep)
+    # - desktop ZIP install (Windows klient) -> 127.0.0.1 (chroni przed wyscigiem
+    #   first_setup z LAN-u, plus nikt z biura nie podsluchnie sesji)
+    _bind_host = '0.0.0.0' if _is_proxied_deployment else '127.0.0.1'
+    log(f"Serwer startuje: http://{_bind_host}:5000")
     print("="*60)
 
     # Produkcyjny WSGI server (waitress) — zamiast Flask dev server (nie padał)
     try:
         from waitress import serve
-        log("Uzywam waitress (produkcyjny WSGI)")
-        serve(app, host='0.0.0.0', port=5000, threads=8, channel_timeout=600)
+        log(f"Uzywam waitress (produkcyjny WSGI, bind={_bind_host})")
+        serve(app, host=_bind_host, port=5000, threads=8, channel_timeout=600)
     except ImportError:
         # PHASE 2: fallback zostaje (lepiej dzialac na dev niz nie dzialac
         # u klienta), ale GLOSNO — produkcja na Flask dev serverze nie ma
@@ -8508,7 +8568,7 @@ if __name__ == '__main__':
         log("[CRITICAL] To NIE jest setup produkcyjny. Wykonaj:  pip install waitress")
         log("[CRITICAL] potem zrestartuj usluge. (requirements.txt zawiera waitress)")
         log(_banner)
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        app.run(host=_bind_host, port=5000, debug=False, threaded=True)
 
 # ============================================================
 # SZTUKI - per-unit tracking
