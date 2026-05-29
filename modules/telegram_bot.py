@@ -137,26 +137,59 @@ def send_telegram(message, parse_mode='HTML', silent=False):
 def send_telegram_support(message, parse_mode='HTML'):
     """Wysyla wiadomosc supportu do DOSTAWCY systemu (Adriana), NIE do klienta.
 
+    v1.0.95 (W1 mitigation): NOWY priorytet z proxy URL.
+
     PRIORYTET:
-    1. vendor_bot_token + vendor_chat_id (TWOJE credentials embedded w zipie)
-       -> kazdy klient pisze do CIEBIE niezaleznie od jego konfiguracji
-    2. Fallback: bot klienta + support_chat_id (gdy vendor nie ustawiony)
-    3. Fallback: bot klienta + main chat_id (klient pisze do siebie - degraded)
+    1. vendor_notify_proxy_url (NOWE, default: app.akceshub.com/api/vendor-notify)
+       -> klient woła proxy z license_key, Adrian na swoim Pi routuje do TG.
+       Klient NIGDY nie ma vendor_bot_tokena -> brak ryzyka exfiltracji.
+    2. vendor_bot_token + vendor_chat_id (LEGACY, backward compat dla starych
+       klientow ktorzy juz maja credentials w vendor_config.json)
+    3. Fallback: bot klienta + support_chat_id (gdy vendor nie ustawiony)
+    4. Fallback: bot klienta + main chat_id (klient pisze do siebie - degraded)
     """
-    # 1. Vendor (Adrian) - priorytetowy
+    # 1. NOWY: Proxy URL - klient nie ma tokena, Adrian routuje na swoim Pi
+    proxy_url = get_config('vendor_notify_proxy_url', 'https://app.akceshub.com/api/vendor-notify').strip()
+    if proxy_url:
+        try:
+            from .license import get_license_info
+            lic = get_license_info() or {}
+            license_key = lic.get('key', '')
+            client = lic.get('client', 'unknown')
+            payload = {
+                'license_key': license_key[:64],
+                'client': client[:50],
+                'message': message[:4000],
+                'parse_mode': parse_mode,
+            }
+            r = requests.post(proxy_url, json=payload, timeout=10)
+            if r.status_code == 200:
+                return True
+            # 404 = endpoint nie dziala u Adriana yet, fallback do legacy
+            # 401/403 = invalid license_key - tez fallback dla safety
+            # ZAS NIE log every fail bo bedzie spam logow
+            if r.status_code not in (404, 401, 403):
+                print(f"[Telegram Support] Proxy fail HTTP {r.status_code}, fallback do legacy")
+        except requests.exceptions.RequestException:
+            # Network/timeout - fallback do legacy (token jak jest)
+            pass
+        except Exception as e:
+            print(f"[Telegram Support] Proxy exception: {e}, fallback do legacy")
+
+    # 2. LEGACY: Vendor (Adrian) bot_token direct
     vendor_token = get_config('vendor_bot_token', '')
     vendor_chat = get_config('vendor_chat_id', '')
     if vendor_token and vendor_chat:
         token = vendor_token
         chat_id = vendor_chat
     else:
-        # 2/3. Fallback: bot klienta
+        # 3/4. Fallback: bot klienta
         token = get_bot_token()
         support_chat = get_config('support_chat_id', '')
         chat_id = support_chat if support_chat else get_chat_id()
 
     if not token or not chat_id:
-        print("[Telegram Support] Brak tokena lub chat_id (ani vendor ani klient)")
+        print("[Telegram Support] Brak tokena lub chat_id (ani vendor ani klient ani proxy)")
         return False
 
     try:

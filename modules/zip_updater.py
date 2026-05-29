@@ -344,6 +344,92 @@ def _make_backup(backup_dir: str) -> Optional[str]:
         return None
 
 
+def _backup_database(backup_dir: str) -> Optional[str]:
+    """v1.0.95 (S5): Backup DB przed update przez SQLite VACUUM INTO.
+
+    Atomiczny + nie blokuje writerow dlugotrwale (vs file copy ktore moze
+    zlapac WAL w niepelnym stanie). Backup uzyteczny do recznego rollback
+    DB w razie niekompatybilnej migracji w nowej wersji.
+
+    Returns: sciezka do backup .db lub None.
+    """
+    import sqlite3 as _sql
+    db_path = os.path.join(_app_dir(), 'akces_hub.db')
+    if not os.path.isfile(db_path):
+        print(f'[zip_updater] DB backup: brak akces_hub.db (fresh install?)')
+        return None
+    os.makedirs(backup_dir, exist_ok=True)
+    ts = time.strftime('%Y%m%d_%H%M%S')
+    dst_path = os.path.join(backup_dir, f'akces_hub_pre_update_{ts}.db')
+    try:
+        # VACUUM INTO jest single-statement atomic, nie blokuje writerow
+        # zbyt dlugo (vs source.backup(target) ktore drzy locki).
+        # Wymaga SQLite >= 3.27.0 (Python 3.7+ ma to OK).
+        conn = _sql.connect(db_path, timeout=30)
+        try:
+            conn.execute("PRAGMA wal_checkpoint(FULL)")  # flush WAL do main
+            conn.execute(f"VACUUM INTO ?", (dst_path,))
+            conn.commit()
+        finally:
+            conn.close()
+        # Walidacja: backup nie moze byc 0 byte
+        if os.path.getsize(dst_path) < 1024:
+            print(f'[zip_updater] DB backup za maly ({os.path.getsize(dst_path)} B) - usuwam')
+            os.remove(dst_path)
+            return None
+        print(f'[zip_updater] DB backup OK: {dst_path} ({os.path.getsize(dst_path)//1024} KB)')
+        return dst_path
+    except Exception as e:
+        print(f'[zip_updater] DB backup FAILED: {e}')
+        # Sprzatnij polowiczny plik
+        if os.path.isfile(dst_path):
+            try:
+                os.remove(dst_path)
+            except Exception:
+                pass
+        return None
+
+
+def _rollback_from_backup(backup_path: str) -> bool:
+    """v1.0.95 (W3): Przywroc pliki z backupu po failed update.
+
+    Wywoluj gdy _extract_and_swap zwroci ok=False - czesc plikow moze byc
+    juz nadpisana, druga czesc stara. Klient zostaje z half-broken apka.
+
+    Args:
+        backup_path: sciezka do folderu z _make_backup()
+    Returns:
+        True gdy rollback OK, False inaczej.
+    """
+    if not os.path.isdir(backup_path):
+        print(f'[zip_updater] rollback: brak backup folderu {backup_path}')
+        return False
+    target = _app_dir()
+    try:
+        # Kopiuj backup -> app dir nadpisujac. PRESERVE_PATHS nie tykamy
+        # (DB, secret_key, vendor_config - nie zmienione przez update).
+        for root, dirs, files in os.walk(backup_path):
+            rel = os.path.relpath(root, backup_path)
+            dirs[:] = [d for d in dirs if d not in PRESERVE_PATHS]
+            dst_folder = target if rel == '.' else os.path.join(target, rel)
+            os.makedirs(dst_folder, exist_ok=True)
+            for fname in files:
+                rel_path = fname if rel == '.' else os.path.join(rel, fname)
+                if any(p in rel_path.replace('\\', '/') for p in PRESERVE_PATHS):
+                    continue
+                src_f = os.path.join(root, fname)
+                dst_f = os.path.join(target, rel_path)
+                try:
+                    shutil.copy2(src_f, dst_f)
+                except Exception as e:
+                    print(f'[zip_updater] rollback copy {rel_path} failed: {e}')
+        print(f'[zip_updater] rollback OK z {backup_path}')
+        return True
+    except Exception as e:
+        print(f'[zip_updater] rollback FAILED: {e}')
+        return False
+
+
 def _extract_and_swap(zip_path: str, target_dir: str) -> Dict[str, Any]:
     """Rozpakuj zip do tmp, potem przenies pliki do target_dir.
 
@@ -402,7 +488,7 @@ def install_update(zip_path: str, signature_hex: str = '') -> Dict[str, Any]:
     Returns:
         dict: ok, files_updated, backup_path, error
     """
-    result = {'ok': False, 'files_updated': 0, 'backup_path': '', 'error': ''}
+    result = {'ok': False, 'files_updated': 0, 'backup_path': '', 'db_backup_path': '', 'rollback_done': False, 'error': ''}
     if not os.path.isfile(zip_path):
         result['error'] = f'Zip nie istnieje: {zip_path}'
         return result
@@ -424,7 +510,7 @@ def install_update(zip_path: str, signature_hex: str = '') -> Dict[str, Any]:
             result['error'] = f'Weryfikacja zip-a: {e}'
             return result
 
-    # 2. Backup
+    # 2. Backup kodu
     backup_dir = os.path.join(_app_dir(), 'backups', 'updates')
     backup_path = _make_backup(backup_dir)
     if not backup_path:
@@ -432,10 +518,31 @@ def install_update(zip_path: str, signature_hex: str = '') -> Dict[str, Any]:
         return result
     result['backup_path'] = backup_path
 
-    # 3. Extract + swap
+    # 2b. v1.0.95 (S5): Backup DB osobno (atomicznie przez VACUUM INTO).
+    # Bez tego klient nie ma jak rollback DB jak nowa wersja ma niekompatybilna
+    # migracje (np ALTER TABLE DROP COLUMN). DB jest w PRESERVE_PATHS wiec
+    # update nie nadpisze - ale migracja w nowym kodzie ja zmodyfikuje.
+    db_backup_path = _backup_database(backup_dir)
+    if db_backup_path:
+        result['db_backup_path'] = db_backup_path
+    else:
+        # Brak DB backup nie blokuje update (np fresh install bez DB),
+        # ale logujemy warning - bez backup DB rollback jest ryzykowny.
+        print('[zip_updater] WARN: brak DB backup - rollback DB nie bedzie mozliwy')
+
+    # 3. Extract + swap (z auto-rollback przy fail)
     swap = _extract_and_swap(zip_path, _app_dir())
     if not swap['ok']:
-        result['error'] = f"Swap failed: {swap.get('error', '?')}"
+        # v1.0.95 (W3): AUTO-ROLLBACK kodu z backupu.
+        # Inaczej klient zostaje z half-broken apka (czesc plikow nowa,
+        # czesc stara - nie startuje albo crashuje na importach).
+        print(f"[zip_updater] swap FAILED ({swap.get('error', '?')}) - probuje rollback z {backup_path}")
+        rolled_back = _rollback_from_backup(backup_path)
+        result['rollback_done'] = rolled_back
+        if rolled_back:
+            result['error'] = f"Swap failed: {swap.get('error', '?')[:200]} - ROLLBACK OK (kod przywrocony)"
+        else:
+            result['error'] = f"Swap failed: {swap.get('error', '?')[:200]} - ROLLBACK TEZ FAILED, klient w half-broken state. Backup: {backup_path}"
         return result
     result['files_updated'] = swap['files_updated']
 

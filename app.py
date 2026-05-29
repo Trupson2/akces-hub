@@ -527,6 +527,8 @@ def csrf_protect_forms():
         '/allegro/webhook',       # HMAC validated w handlerze
         '/telegram/webhook',      # secret_token validated w handlerze
         '/api/v1/',               # Public REST API — auth przez X-API-Key zamiast sesji
+        '/api/license/verify',    # Heartbeat licencji od klientow - bez sesji
+        '/api/vendor-notify',     # v1.0.95 W1: notify proxy od klientow - license_key auth
     )
     if any(request.path.startswith(p) for p in _csrf_exempt):
         return
@@ -3886,6 +3888,93 @@ def api_license_verify():
     except Exception as e:
         print(f"[ERR] License verify: {e}")
         return jsonify({'valid': False, 'error': 'Błąd weryfikacji'}), 500
+
+
+# ============================================================
+# VENDOR NOTIFY PROXY — klient woła ten endpoint na Pi vendora
+# (akceshub.com) bez tokenow. Vendor routuje do swojego TG.
+# W1 mitigation: klient nigdy nie ma vendor_bot_token.
+# ============================================================
+# v1.0.95 W1 mitigation. Aktywny tylko na Pi vendora (Adriana).
+# U klienta endpoint istnieje ale nie ma sensu wywolywac go u siebie.
+# Rate-limit: max 100 wiadomosci/dzien per license_key (anti-spam).
+_vendor_notify_counters = {}  # {license_key: [count, day_str]}
+
+@app.route('/api/vendor-notify', methods=['POST'])
+def api_vendor_notify():
+    """Proxy endpoint dla notify od klientow do vendora (Adrian).
+
+    Klient wola: POST /api/vendor-notify {license_key, client, message, parse_mode}
+    Walidacja:
+    - license_key musi istniec w licenses_issued (klient zarejestrowany)
+    - rate-limit 100/day per license
+    Vendor (akceshub.com) routuje do swojego TG botu (bot token niewidoczny dla klienta).
+
+    NIE ma _csrf_exempt — jest w /api/v1/* whitelist? sprawdzic.
+    Nie wymaga sesji ale wymaga valid license_key.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        license_key = (data.get('license_key') or '').strip()[:64]
+        client_name = (data.get('client') or 'unknown')[:50]
+        message = (data.get('message') or '')[:4000]
+        parse_mode = (data.get('parse_mode') or 'HTML').strip()[:10]
+        if parse_mode not in ('HTML', 'Markdown', 'MarkdownV2'):
+            parse_mode = 'HTML'
+
+        if not license_key or not message:
+            return jsonify({'ok': False, 'error': 'Brak license_key lub message'}), 400
+
+        # Walidacja licencji
+        from modules.database import get_db
+        conn = get_db()
+        row = conn.execute(
+            'SELECT id, active FROM licenses_issued WHERE license_key = ?',
+            (license_key,)
+        ).fetchone()
+        if not row:
+            return jsonify({'ok': False, 'error': 'Nieznana licencja'}), 401
+        if not row['active']:
+            return jsonify({'ok': False, 'error': 'Licencja nieaktywna'}), 403
+
+        # Rate-limit: max 100/day per license
+        import time
+        _today = time.strftime('%Y-%m-%d')
+        _state = _vendor_notify_counters.get(license_key, [0, _today])
+        if _state[1] != _today:
+            _state = [0, _today]
+        if _state[0] >= 100:
+            return jsonify({'ok': False, 'error': 'Rate limit dzienny (100/dzien)'}), 429
+        _state[0] += 1
+        _vendor_notify_counters[license_key] = _state
+
+        # Routing do TG vendora (Adrian na swoim Pi - bot token w jego config)
+        from modules.database import get_config
+        vendor_bot_token = get_config('telegram_bot_token', '')
+        vendor_chat_id = get_config('telegram_chat_id', '')
+        if not vendor_bot_token or not vendor_chat_id:
+            # Vendor nie skonfigurowal TG - logujemy ale nie failujemy klienta
+            print(f"[vendor-notify] WARN: vendor nie ma TG ({client_name}: {message[:60]})")
+            return jsonify({'ok': True, 'fallback': 'logged_only'})
+
+        import requests as _req
+        _full_msg = f"[{client_name}] {message}"[:4096]
+        try:
+            r = _req.post(
+                f'https://api.telegram.org/bot{vendor_bot_token}/sendMessage',
+                json={'chat_id': vendor_chat_id, 'text': _full_msg, 'parse_mode': parse_mode},
+                timeout=10
+            )
+            if r.status_code == 200:
+                return jsonify({'ok': True})
+            return jsonify({'ok': False, 'error': f'TG HTTP {r.status_code}'}), 502
+        except Exception as e:
+            print(f"[vendor-notify] TG send error: {e}")
+            return jsonify({'ok': False, 'error': 'TG send failed'}), 502
+
+    except Exception as e:
+        print(f"[ERR] vendor-notify: {e}")
+        return jsonify({'ok': False, 'error': 'Server error'}), 500
 
 
 # ============================================================

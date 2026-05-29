@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- sec(W1+W3+S5): vendor-notify proxy (klient nigdy nie ma vendor_bot_token) + DB backup VACUUM INTO przed update + auto-rollback przy failed swap. Patrz commit.
 - sec(critical): K1+K3+K4 security fixy przed dostawa SaaS klientom. Patrz commit message.
 - perf(db): 3 brakujace indeksy - produkty.kod_magazynowy (skaner/search), oferty.status, oferty(status, data_aktualizacji). Skaner ~10x szybszy przy 50K produktow.
 - feat(narzedzia): /magazyn/naprawa-cen-excel - retro-fix dla produktow z brakujacymi cenami. Wgraj Excel, match po ASIN/EAN/nazwa, UPDATE tylko cen (cena_netto+cena_brutto+cena_allegro). Dry-run domyslnie wlaczony - podglad przed zapisem. Kafelek w /narzedzia.
