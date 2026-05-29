@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- fix(update): wylaczono auto-regenerate CHANGELOG.md przy starcie Flask. Plik byl tracked w gicie ale modyfikowany przy kazdym restartcie -> manualny 'git pull' padal z 'local changes would be overwritten by merge'. Endpoint update mial workaround, manual SSH nie.
 - fix(banner): baner gorny zawsze sync z dashboard widgetem. Sync update_available z cache.has_update przy kazdym renderze + reset przy starcie. Bez tego po manualnym git pull baner wisial mimo 'System aktualny'.
 - fix(update): wersja w sidebar + banner zgadza sie po update (canonical = last_install_commit zamiast git rev-parse). Banner JS fallback do ZIP tylko na 404 (nie na 5xx git pull). Cache cleared po obu paths.
 - ux(W4): port health-check przed os._exit po update -> klient nie widzi 'app nie dziala' przez 5-10s gdy Defender skanuje pythonw.exe. + docs/CLIENT_INSTALL_WINDOWS.md - pelna instrukcja dla klienta koncowego.

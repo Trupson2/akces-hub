@@ -220,9 +220,16 @@ def _generate_changelog():
     except Exception:
         pass
 
-# PERF: changelog odpalamy w tle — git log moze trwac kilka s, nie blokuj startu
-import threading as _threading_init
-_threading_init.Thread(target=_generate_changelog, daemon=True).start()
+# v1.0.99 FIX: NIE regeneruj CHANGELOG.md automatycznie przy starcie.
+# CHANGELOG.md jest w git repo (vendor edytuje recznie przy kazdym push),
+# auto-regeneracja u klienta nadpisuje go, a potem 'git pull' pada bo
+# 'local changes would be overwritten by merge'. Adrian dostal ten blad
+# przy manualnym update na Pi.
+#
+# Funkcja _generate_changelog() zostaje dostepna jako utility (np. dla
+# vendora przed push), ale NIE jest wywolywana automatycznie.
+# import threading as _threading_init
+# _threading_init.Thread(target=_generate_changelog, daemon=True).start()
 
 # ── Asynchroniczny git fetch + porownanie z origin (uzywany przez /dashboard) ──
 def _git_update_check_async():
