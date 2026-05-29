@@ -5604,6 +5604,272 @@ def zamowienie_detail(order_id):
     return render(html, 'Zamowienie')
 
 
+# ─────────────────────────────────────────────────────────────────
+# v1.0.100: BATCH CLEANUP DUPLIKATOW OFERT NA ALLEGRO
+# Skanuje grupy duplikatow (po ASIN+stan lub nazwa+stan dla bez-ASIN),
+# pozwala batch-zakonczyc niepotrzebne oferty. Chroni sprzedaze:
+# oferty ze sprzedazami sa pre-zaznaczone do ZACHOWANIA.
+# ─────────────────────────────────────────────────────────────────
+
+@allegro_bp.route('/duplikaty')
+def duplikaty_form():
+    """Lista grup duplikatow ofert na Allegro z sugestiami co zakonczyc."""
+    from .database import get_db
+    import re as _re_dup
+    from flask import render_template_string
+
+    conn = get_db()
+
+    # Pobierz wszystkie aktywne/szkic oferty z polaczonymi produktami
+    rows = conn.execute('''
+        SELECT
+            o.id AS oferta_id, o.allegro_id, o.tytul, o.status, o.ilosc,
+            o.data_aktualizacji,
+            p.id AS prod_id, p.nazwa AS prod_nazwa, p.asin, p.ean, p.stan
+        FROM oferty o
+        LEFT JOIN produkty p ON o.produkt_id = p.id
+        WHERE o.status IN ('aktywna','active','ACTIVE','wystawiona','published',
+                           'draft','DRAFT','szkic','SZKIC')
+          AND o.allegro_id IS NOT NULL AND o.allegro_id != ''
+        ORDER BY o.data_aktualizacji DESC
+    ''').fetchall()
+
+    # Sprzedaze per oferta (do oznaczania jako "ma sprzedaze")
+    sales_per_offer = {}
+    try:
+        sales_rows = conn.execute(
+            "SELECT oferta_id, COUNT(*) AS cnt FROM sprzedaze "
+            "WHERE oferta_id IS NOT NULL GROUP BY oferta_id"
+        ).fetchall()
+        sales_per_offer = {r['oferta_id']: r['cnt'] for r in sales_rows}
+    except Exception:
+        pass
+
+    # Grupuj po (ASIN+stan) lub fallback (nazwa_norm+stan)
+    grupy_dict = {}
+    for r in rows:
+        asin = (r['asin'] or '').strip().upper()
+        stan = (r['stan'] or 'Nowy').strip()
+        if asin:
+            klucz = ('asin', asin, stan)
+        else:
+            nazwa = (r['tytul'] or r['prod_nazwa'] or '').lower()
+            nazwa_norm = _re_dup.sub(r'[^a-z0-9 ]+', '', nazwa)[:40].strip()
+            if not nazwa_norm:
+                continue  # brak danych do grupowania
+            klucz = ('nazwa', nazwa_norm, stan)
+        grupy_dict.setdefault(klucz, []).append(dict(r))
+
+    # Filtruj: tylko grupy z >1 oferta
+    grupy = []
+    for klucz, oferty_lista in grupy_dict.items():
+        if len(oferty_lista) < 2:
+            continue
+        klucz_typ, klucz_val, stan = klucz
+        # Sortuj: najwiecej sprzedazy DESC, potem data_aktualizacji DESC
+        for o in oferty_lista:
+            o['sprzedaze'] = sales_per_offer.get(o['oferta_id'], 0)
+        oferty_lista.sort(
+            key=lambda x: (x['sprzedaze'], x['data_aktualizacji'] or ''),
+            reverse=True
+        )
+        # Pierwsza w sortowaniu = "ZOSTAW", reszta = "ZAKONCZ"
+        grupy.append({
+            'klucz_typ': klucz_typ,
+            'klucz_val': klucz_val,
+            'stan': stan,
+            'oferty': oferty_lista,
+            'count': len(oferty_lista),
+        })
+
+    # Sortuj grupy po rozmiarze DESC (najwieksze problemy najpierw)
+    grupy.sort(key=lambda g: g['count'], reverse=True)
+
+    total_grupy = len(grupy)
+    total_ofert = sum(g['count'] for g in grupy)
+    total_do_zakonczenia = sum(g['count'] - 1 for g in grupy)
+    total_chronionych = sum(
+        sum(1 for o in g['oferty'] if o['sprzedaze'] > 0)
+        for g in grupy
+    )
+
+    html = render_template_string('''
+{% extends "base.html" %}
+{% block content %}
+<div class="hdr">
+    <h1><span class="material-symbols-outlined">content_copy</span> DUPLIKATY OFERT NA ALLEGRO</h1>
+    <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">
+        Skan grup duplikatow - oferty z tym samym ASIN+stan lub nazwa+stan. Pozwala batch-zakonczyc niepotrzebne. Oferty ze sprzedazami chronione.
+    </div>
+</div>
+
+<div class="card" style="padding:16px;margin-bottom:18px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+        <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Grupy duplikatow</div><div style="font-size:1.6rem;font-weight:800;color:#fbbf24">{{ total_grupy }}</div></div>
+        <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Ofert w grupach</div><div style="font-size:1.6rem;font-weight:800">{{ total_ofert }}</div></div>
+        <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Do zakonczenia</div><div style="font-size:1.6rem;font-weight:800;color:#fb7185">{{ total_do_zakonczenia }}</div></div>
+        <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Chronione (sprzedaze)</div><div style="font-size:1.6rem;font-weight:800;color:#22c55e">{{ total_chronionych }}</div></div>
+    </div>
+</div>
+
+{% if total_grupy == 0 %}
+<div class="card" style="padding:30px;text-align:center;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3)">
+    <div style="font-size:3rem;margin-bottom:10px"><span class="material-symbols-outlined" style="font-size:3rem;color:#22c55e">check_circle</span></div>
+    <div style="font-size:1.1rem;font-weight:700;color:#22c55e">Brak duplikatow!</div>
+    <div style="font-size:0.85rem;color:#94a3b8;margin-top:6px">Twoje oferty na Allegro sa unikalne (po ASIN+stan lub nazwa+stan).</div>
+</div>
+{% else %}
+
+<div class="card" style="padding:14px;margin-bottom:18px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25)">
+    <div style="font-size:0.85rem;color:#fbbf24;line-height:1.6">
+        <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">info</span>
+        <b>Jak dzialamy:</b> w kazdej grupie pre-zaznaczona do ZACHOWANIA jest oferta z <b>najwieksza ilosc sprzedazy</b> (lub najmlodsza gdy brak). Pozostale do zakonczenia (status='ENDED' na Allegro). Mozesz manualnie zmienic zaznaczenia.
+    </div>
+</div>
+
+<form action="/allegro/duplikaty/zakoncz" method="POST" id="dupForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for g in grupy %}
+    <div class="card" style="padding:14px;margin-bottom:14px;border-left:4px solid #f59e0b">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div>
+                <div style="font-weight:700;font-size:0.95rem">
+                    {% if g.klucz_typ == 'asin' %}
+                        <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;color:#8ff5ff">label</span>
+                        ASIN: <code style="color:#8ff5ff">{{ g.klucz_val }}</code>
+                    {% else %}
+                        <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;color:#fb7185">text_fields</span>
+                        Nazwa: <code style="color:#fb7185">{{ g.klucz_val }}</code>
+                    {% endif %}
+                    &middot; stan: <b>{{ g.stan }}</b>
+                </div>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-top:3px">{{ g.count }} duplikatow</div>
+            </div>
+        </div>
+        <table style="width:100%;font-size:0.82rem;border-collapse:collapse">
+            <thead>
+                <tr style="border-bottom:1px solid #2d3748;text-align:left">
+                    <th style="padding:6px">Akcja</th>
+                    <th style="padding:6px">Allegro ID</th>
+                    <th style="padding:6px">Tytul</th>
+                    <th style="padding:6px">Status</th>
+                    <th style="padding:6px">Ilosc</th>
+                    <th style="padding:6px">Sprzedaze</th>
+                    <th style="padding:6px">Aktualizacja</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in g.oferty %}
+                {% set is_first = loop.index == 1 %}
+                {% set has_sales = o.sprzedaze > 0 %}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);{% if is_first %}background:rgba(34,197,94,0.05){% endif %}">
+                    <td style="padding:6px">
+                        {% if is_first or has_sales %}
+                            <span style="color:#22c55e;font-weight:700;font-size:0.75rem">
+                                <span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle">check_circle</span> ZOSTAW
+                                {% if has_sales and not is_first %}<br><small style="color:#fbbf24">(sprzedaze)</small>{% endif %}
+                            </span>
+                            <input type="hidden" name="keep_{{ o.oferta_id }}" value="1">
+                        {% else %}
+                            <label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+                                <input type="checkbox" name="zakoncz_oferty" value="{{ o.oferta_id }}|{{ o.allegro_id }}" checked style="width:16px;height:16px">
+                                <span style="color:#fb7185;font-weight:600;font-size:0.75rem">ZAKONCZ</span>
+                            </label>
+                        {% endif %}
+                    </td>
+                    <td style="padding:6px"><code style="font-size:0.75rem;color:#8ff5ff">{{ o.allegro_id }}</code></td>
+                    <td style="padding:6px">{{ (o.tytul or '')[:45] }}{% if o.tytul and o.tytul|length > 45 %}...{% endif %}</td>
+                    <td style="padding:6px"><span style="font-size:0.7rem;padding:2px 6px;border-radius:4px;background:{{ 'rgba(34,197,94,0.15);color:#22c55e' if o.status in ['aktywna','active','ACTIVE','wystawiona','published'] else 'rgba(143,245,255,0.12);color:#8ff5ff' }}">{{ o.status }}</span></td>
+                    <td style="padding:6px">{{ o.ilosc or 0 }}</td>
+                    <td style="padding:6px">{% if o.sprzedaze > 0 %}<span style="color:#22c55e;font-weight:700">{{ o.sprzedaze }}</span>{% else %}<span style="color:#64748b">0</span>{% endif %}</td>
+                    <td style="padding:6px;font-size:0.72rem;color:#94a3b8">{{ (o.data_aktualizacji or '')[:16] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+    <div class="card" style="padding:16px;margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25)">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Zakonczyc zaznaczone oferty na Allegro? Tej operacji NIE da sie cofnac (oferty beda ENDED).')">
+            <span class="material-symbols-outlined">delete</span> Zakoncz zaznaczone oferty
+        </button>
+        <div style="font-size:0.78rem;color:#94a3b8">PATCH /sale/product-offers -> publication.status=ENDED. Idempotent.</div>
+    </div>
+</form>
+{% endif %}
+
+<a href="/allegro" class="back" style="margin-top:18px">&larr; Allegro</a>
+{% endblock %}
+''',
+        total_grupy=total_grupy,
+        total_ofert=total_ofert,
+        total_do_zakonczenia=total_do_zakonczenia,
+        total_chronionych=total_chronionych,
+        grupy=grupy,
+    )
+    return html
+
+
+@allegro_bp.route('/duplikaty/zakoncz', methods=['POST'])
+def duplikaty_zakoncz():
+    """Batch zakanczanie ofert (publication.status=ENDED).
+
+    Form data: zakoncz_oferty[] z values "<oferta_id>|<allegro_id>".
+    """
+    from .database import get_db
+    from flask import redirect
+
+    selected = request.form.getlist('zakoncz_oferty')
+    if not selected:
+        return redirect('/allegro/duplikaty')
+
+    ok_count = 0
+    fail_count = 0
+    skip_count = 0
+    fails = []
+
+    for entry in selected:
+        try:
+            parts = entry.split('|')
+            if len(parts) != 2:
+                continue
+            oferta_id, allegro_id = parts[0].strip(), parts[1].strip()
+            if not allegro_id:
+                skip_count += 1
+                continue
+            _, error = close_offer(allegro_id)
+            if error is None or 'OFFER_ALREADY_ENDED_OR_GONE' in str(error):
+                ok_count += 1
+            else:
+                fail_count += 1
+                fails.append(f"#{allegro_id}: {str(error)[:80]}")
+        except Exception as e:
+            fail_count += 1
+            fails.append(f"exception: {str(e)[:80]}")
+
+    fails_html = ''
+    if fails:
+        fails_html = '<div class="card" style="padding:14px;margin-top:14px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.3)"><div style="font-weight:700;color:#fca5a5;margin-bottom:8px">Bledy ({0}):</div><pre style="font-size:0.78rem;color:#fca5a5;white-space:pre-wrap;margin:0">{1}</pre></div>'.format(len(fails), '\n'.join(fails[:50]).replace('<', '&lt;'))
+
+    html = f'''
+    <div class="hdr"><h1><span class="material-symbols-outlined">task_alt</span> ZAKONCZONO DUPLIKATY</h1></div>
+    <div class="card" style="padding:18px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+            <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Sukces</div><div style="font-size:1.6rem;font-weight:800;color:#22c55e">{ok_count}</div></div>
+            <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Bledy</div><div style="font-size:1.6rem;font-weight:800;color:#fb7185">{fail_count}</div></div>
+            <div><div style="font-size:0.7rem;color:#94a3b8;text-transform:uppercase">Pominiete</div><div style="font-size:1.6rem;font-weight:800;color:#94a3b8">{skip_count}</div></div>
+        </div>
+    </div>
+    {fails_html}
+    <div style="margin-top:18px;display:flex;gap:10px">
+        <a href="/allegro/duplikaty" class="btn btn-secondary">Ponow skan</a>
+        <a href="/allegro/oferty" class="btn btn-primary">Moje oferty</a>
+    </div>
+    '''
+    return render(html, 'Duplikaty - wynik')
+
+
 @allegro_bp.route('/oferty')
 def oferty():
     offers_data, error = get_my_offers()

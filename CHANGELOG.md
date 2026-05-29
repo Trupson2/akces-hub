@@ -2,6 +2,7 @@
 
 ## 28.05.2026
 
+- feat(allegro): /allegro/duplikaty - batch cleanup duplikatow ofert. Grupuje po ASIN+stan (lub nazwa_norm+stan dla bez-ASIN), pre-zaznacza do zakonczenia wszystkie OPROCZ tej z najwieksza ilosc sprzedazy (chronione). Batch PATCH publication.status=ENDED przez Allegro API. Kafelek w /narzedzia.
 - fix(update): wylaczono auto-regenerate CHANGELOG.md przy starcie Flask. Plik byl tracked w gicie ale modyfikowany przy kazdym restartcie -> manualny 'git pull' padal z 'local changes would be overwritten by merge'. Endpoint update mial workaround, manual SSH nie.
 - fix(banner): baner gorny zawsze sync z dashboard widgetem. Sync update_available z cache.has_update przy kazdym renderze + reset przy starcie. Bez tego po manualnym git pull baner wisial mimo 'System aktualny'.
 - fix(update): wersja w sidebar + banner zgadza sie po update (canonical = last_install_commit zamiast git rev-parse). Banner JS fallback do ZIP tylko na 404 (nie na 5xx git pull). Cache cleared po obu paths.
