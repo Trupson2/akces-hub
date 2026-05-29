@@ -3656,6 +3656,108 @@ def statystyki():
     '''
     return render(html)
 
+@magazynier_bp.route('/paleta/nowa', methods=['GET', 'POST'])
+def paleta_nowa():
+    """v1.0.108: Dedykowany formularz tworzenia pustej palety.
+
+    Klient (Macek) nie wiedzial ze palety tworzy sie w paletomacie/scraperze.
+    Teraz wyrazny przycisk "Nowa paleta" na /palety -> ten formularz.
+    Tworzy pusta palete, do ktorej potem dodaje produkty (skaner/import/scraper).
+    """
+    if request.method == 'POST':
+        from modules.database import add_paleta
+        nazwa = (request.form.get('nazwa', '') or '').strip()[:100]
+        dostawca = (request.form.get('dostawca', '') or '').strip()[:80]
+        typ = (request.form.get('typ', 'paleta') or 'paleta').strip()
+        if typ not in ('paleta', 'box'):
+            typ = 'paleta'
+        try:
+            cena_zakupu = float(request.form.get('cena_zakupu', 0) or 0)
+        except (ValueError, TypeError):
+            cena_zakupu = 0
+        try:
+            ilosc_sztuk = int(float(request.form.get('ilosc_sztuk', 0) or 0))
+        except (ValueError, TypeError):
+            ilosc_sztuk = 0
+
+        if not nazwa:
+            return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>'
+                          '<div class="alert alert-err">Nazwa palety jest wymagana</div>'
+                          '<a href="/magazyn/paleta/nowa" class="btn btn-p">← Powrót</a>')
+
+        try:
+            pid = add_paleta(nazwa, dostawca, cena_zakupu, typ=typ)
+            if ilosc_sztuk > 0:
+                try:
+                    conn = get_db()
+                    conn.execute('UPDATE palety SET ilosc_sztuk = ? WHERE id = ?', (ilosc_sztuk, pid))
+                    conn.commit()
+                except Exception:
+                    pass
+            return redirect(f'/palety?created={pid}')
+        except Exception as e:
+            return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>'
+                          f'<div class="alert alert-err">Nie udało się utworzyć palety: {str(e)[:150]}</div>'
+                          '<a href="/magazyn/paleta/nowa" class="btn btn-p">← Powrót</a>')
+
+    # GET — formularz
+    html = f'''
+    <div class="hdr">
+        <h1><span class=material-symbols-outlined>add_box</span> NOWA PALETA</h1>
+        <small>Utwórz pustą paletę — produkty dodasz później (skaner / import / scraper)</small>
+    </div>
+
+    <form method="POST" action="/magazyn/paleta/nowa">
+        <input type="hidden" name="csrf_token" value="{generate_csrf()}">
+        <div class="card" style="padding:22px;max-width:560px">
+            <div style="margin-bottom:16px">
+                <label style="display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Nazwa palety *</label>
+                <input type="text" name="nazwa" required placeholder="np. Paleta Amazon #15 / Zwroty elektronika"
+                    style="width:100%;padding:12px 14px;background:#0a0a0f;border:1px solid rgba(143,245,255,0.2);border-radius:8px;color:#e2e8f0;font-size:0.95rem">
+            </div>
+            <div style="margin-bottom:16px">
+                <label style="display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Dostawca</label>
+                <input type="text" name="dostawca" placeholder="np. Miglo / B-Stock / Amazon (opcjonalnie)"
+                    style="width:100%;padding:12px 14px;background:#0a0a0f;border:1px solid rgba(143,245,255,0.2);border-radius:8px;color:#e2e8f0;font-size:0.95rem">
+            </div>
+            <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+                <div style="flex:1;min-width:160px">
+                    <label style="display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Cena zakupu (brutto zł)</label>
+                    <input type="number" name="cena_zakupu" step="0.01" min="0" placeholder="np. 1500"
+                        style="width:100%;padding:12px 14px;background:#0a0a0f;border:1px solid rgba(143,245,255,0.2);border-radius:8px;color:#e2e8f0;font-size:0.95rem">
+                </div>
+                <div style="flex:1;min-width:160px">
+                    <label style="display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Ilość sztuk (szacunkowa)</label>
+                    <input type="number" name="ilosc_sztuk" min="0" placeholder="np. 50 (opcjonalnie)"
+                        style="width:100%;padding:12px 14px;background:#0a0a0f;border:1px solid rgba(143,245,255,0.2);border-radius:8px;color:#e2e8f0;font-size:0.95rem">
+                </div>
+            </div>
+            <div style="margin-bottom:20px">
+                <label style="display:block;font-size:0.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Typ</label>
+                <select name="typ" style="width:100%;padding:12px 14px;background:#0a0a0f;border:1px solid rgba(143,245,255,0.2);border-radius:8px;color:#e2e8f0;font-size:0.95rem">
+                    <option value="paleta">Paleta</option>
+                    <option value="box">Box / karton</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+                <button type="submit" class="btn btn-ok" style="padding:13px 28px;font-weight:700">
+                    <span class=material-symbols-outlined>add</span> Utwórz paletę
+                </button>
+                <a href="/palety" class="back" style="margin-left:auto">← Anuluj</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="card" style="padding:16px;margin-top:16px;max-width:560px;background:rgba(143,245,255,0.04);border:1px solid rgba(143,245,255,0.15)">
+        <div style="font-size:0.82rem;color:#94a3b8;line-height:1.6">
+            <span class=material-symbols-outlined style="font-size:1rem;vertical-align:middle;color:#8ff5ff">info</span>
+            Po utworzeniu dodasz produkty: <b>Skaner</b> (skanuj kody), <b>Import multi-paleta</b> (Excel), lub <b>Paletomat → Scraper</b> (ASIN-y z Amazon).
+        </div>
+    </div>
+    '''
+    return render(html, 'Nowa paleta')
+
+
 @magazynier_bp.route('/palety')
 def palety():
     from urllib.parse import quote
@@ -3748,6 +3850,12 @@ def palety():
             <div class="pl-headline" style="font-size:1.5rem;font-weight:700">{total_palety}</div>
         </div>
     </div>
+
+    <!-- v1.0.108: Wyrazny przycisk dodania nowej palety (klienci nie wiedzieli
+         ze palety tworzy sie w scraperze) -->
+    <a href="/magazyn/paleta/nowa" style="display:inline-flex;align-items:center;gap:8px;padding:13px 24px;margin-bottom:16px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:0.92rem;box-shadow:0 4px 14px rgba(34,197,94,0.3);transition:all 0.2s">
+        <span class=material-symbols-outlined>add_box</span> Nowa paleta
+    </a>
 
     <!-- Actions -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
