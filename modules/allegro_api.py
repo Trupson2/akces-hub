@@ -898,15 +898,30 @@ def sync_offers_status():
         'ENDED': 'zakonczona'
     }
     
+    # v1.0.105 FIX: batch commit co 50 ofert. Wczesniej JEDEN commit na koncu
+    # calej petli 529 ofert -> write-lock na bazie przez kilkanascie-kilkadziesiat
+    # sekund. Login (rehash hasla/log/sesja = write) czekal na lock -> wisiał
+    # w nieskonczonosc. Batch commit zwalnia lock co 50 ofert -> inne writy
+    # (login) maja okno ~ms zeby sie wcisnac.
+    _batch_commit_every = 50
+    _processed_in_batch = 0
     for offer in allegro_offers:
         if not offer or not isinstance(offer, dict):
             continue
         offer_id = offer.get('id')
         if not offer_id:
             continue
+        # Batch commit - zwolnij write lock co N ofert
+        _processed_in_batch += 1
+        if _processed_in_batch >= _batch_commit_every:
+            try:
+                conn.commit()
+            except Exception:
+                pass
+            _processed_in_batch = 0
         allegro_status = (offer.get('publication') or {}).get('status', 'INACTIVE')
         our_status = status_map.get(allegro_status, 'draft')
-        
+
         # Statystyki
         if allegro_status == 'INACTIVE':
             stats['draft'] += 1

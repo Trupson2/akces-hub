@@ -1880,11 +1880,35 @@ def paletomat_early_access():
     return jsonify({'ok': True})
 
 
+@app.route('/brand-logo')
+def brand_logo_serve():
+    """v1.0.105: Serwuj logo server-side (pierwszy istniejacy plik).
+
+    Bez tego base.html mial <img src=brand_logo.svg onerror=...png onerror=...default>
+    -> 2x 404 (svg+png) per render gdy klient nie wgral wlasnego logo.
+    Spam 404 w logach. Teraz endpoint zwraca pierwszy istniejacy = zero 404.
+    """
+    from flask import send_file, abort
+    _static = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+    for _fname in ('brand_logo.svg', 'brand_logo.png', 'brand_logo_default.svg'):
+        _fp = os.path.join(_static, _fname)
+        if os.path.exists(_fp):
+            resp = make_response(send_file(_fp))
+            resp.headers['Cache-Control'] = 'public, max-age=3600'  # cache 1h
+            return resp
+    abort(404)
+
+
 @app.route('/api/system-stats')
 def api_system_stats():
     """System stats for Raspberry Pi dashboard"""
     import psutil, time
-    cpu = psutil.cpu_percent(interval=0.5)
+    # v1.0.105: interval=None (nieblokujace) zamiast 0.5 - nie trzyma watka
+    # waitress 0.5s. Przy kilku otwartych kartach pollujacych co 15s + sync
+    # ofert, blokujace cpu_percent wyczerpywalo pule 8 watkow -> login czekal.
+    # interval=None zwraca % od ostatniego wywolania (lekko mniej dokladne,
+    # ale dla monitora UI wystarczy).
+    cpu = psutil.cpu_percent(interval=None)
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage('/')
     # Temperature - Linux (Pi) or fallback

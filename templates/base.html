@@ -571,10 +571,11 @@ function doUpdateFromBanner(e) {
 <!-- Sidebar -->
 <aside class="sidebar">
     <div class="sidebar-brand">
-        <!-- Logo priorytet: klient SVG -> klient PNG -> default SVG (Akces Hub) -> tekst -->
-        <img src="/static/brand_logo.svg" alt="{{ brand_name }}"
+        <!-- v1.0.105: logo przez endpoint /brand-logo (server-side wybor pierwszego
+             istniejacego pliku) - zero 404 spam. Fallback do tekstu gdy endpoint 404. -->
+        <img src="/brand-logo" alt="{{ brand_name }}"
              style="width:44px;height:44px;object-fit:contain;flex-shrink:0"
-             onerror="this.onerror=null;this.src='/static/brand_logo.png';this.onerror=function(){this.onerror=null;this.src='/static/brand_logo_default.svg';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='flex';};};">
+             onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';">
         <div class="sidebar-brand-icon" style="display:none;background:{{ brand_color|default('#8ff5ff') }}20;color:{{ brand_color|default('#8ff5ff') }}">{{ brand_name[:1]|default('A') }}</div>
         <div class="sidebar-brand-text">
             <h1 style="color:{{ brand_color|default('#8ff5ff') }}">{{ brand_name }}</h1>
