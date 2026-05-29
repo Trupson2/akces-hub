@@ -3694,6 +3694,11 @@ def paleta_nowa():
                     conn.commit()
                 except Exception:
                     pass
+            # v1.0.112: po utworzeniu -> scraper z preselekcja palety (klient
+            # od razu dodaje produkty). Przycisk "Utworz + dodaj" wysyla goto=scraper.
+            _goto = (request.form.get('goto', '') or '').strip()
+            if _goto == 'scraper':
+                return redirect(f'/paletomat/scraper?paleta_id={pid}')
             return redirect(f'/palety?created={pid}')
         except Exception as e:
             return render('<div class="hdr"><h1><span class=material-symbols-outlined>cancel</span> BŁĄD</h1></div>'
@@ -3739,11 +3744,17 @@ def paleta_nowa():
                     <option value="box">Box / karton</option>
                 </select>
             </div>
-            <div style="display:flex;gap:10px;align-items:center">
-                <button type="submit" class="btn btn-ok" style="padding:13px 28px;font-weight:700">
-                    <span class=material-symbols-outlined>add</span> Utwórz paletę
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <button type="submit" name="goto" value="scraper" class="btn btn-ok" style="padding:13px 26px;font-weight:700;background:linear-gradient(135deg,#8ff5ff,#22d3ee);color:#0a0e16">
+                    <span class=material-symbols-outlined>add_circle</span> Utwórz + dodaj produkty
+                </button>
+                <button type="submit" name="goto" value="palety" class="btn btn-secondary" style="padding:13px 22px;font-weight:600">
+                    <span class=material-symbols-outlined>add</span> Utwórz (sama paleta)
                 </button>
                 <a href="/palety" class="back" style="margin-left:auto">← Anuluj</a>
+            </div>
+            <div style="font-size:0.75rem;color:#64748b;margin-top:8px">
+                <b>Utwórz + dodaj produkty</b> → przejdziesz od razu do scrapera z wybraną paletą. <b>Sama paleta</b> → wrócisz do listy palet.
             </div>
         </div>
     </form>

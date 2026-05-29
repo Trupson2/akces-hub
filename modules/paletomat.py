@@ -1369,16 +1369,25 @@ def scraper():
     except:
         ostatnio_dodane = []
 
+    # v1.0.112: preselekcja palety z query (?paleta_id=) - po utworzeniu nowej
+    # palety klient laduje na scraper z ta paleta juz wybrana w dropdownie.
+    try:
+        _preselect_pid = request.args.get('paleta_id', type=int)
+    except Exception:
+        _preselect_pid = None
+
     # Dropdown palet (pełny - dla formularza ASIN)
     palety_options = '<option value="">-- Bez palety --</option>'
     palety_options += '<option value="new">➕ Nowa paleta...</option>'
     for p in palety:
-        palety_options += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
+        _sel = ' selected' if _preselect_pid and p["id"] == _preselect_pid else ''
+        palety_options += f'<option value="{p["id"]}"{_sel}>{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
 
     # Dropdown palet (tylko lista - dla formularza FILE, bez "Bez palety" i "Nowa")
     palety_options_clean = ''
     for p in palety:
-        palety_options_clean += f'<option value="{p["id"]}">{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
+        _sel = ' selected' if _preselect_pid and p["id"] == _preselect_pid else ''
+        palety_options_clean += f'<option value="{p["id"]}"{_sel}>{p["nazwa"]} ({p["dostawca"] or "brak dostawcy"})</option>'
 
     # Build recently discovered table rows
     disc_rows = ''

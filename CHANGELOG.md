@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- feat(palety): "Nowa paleta" ma 2 przyciski - "Utworz + dodaj produkty" (-> scraper z preselekcja palety) i "Utworz (sama paleta)" (-> lista). Scraper czyta ?paleta_id= i preselektuje palete w dropdownie.
 - perf(wystaw): pojedyncze wystawianie szybsze. Upload zdjec ROWNOLEGLY (ThreadPoolExecutor x4, kolejnosc zachowana) zamiast sekwencyjnego - 8 zdjec ~16s -> ~4s. Usuniete sztuczne time.sleep (0.2 + 0.3/zdjecie = ~3s zmarnowane). Single z ~30s -> ~12-15s.
 - perf(audyt): 3 fixy wydajnosci. (1) /api/check-sales: sync_orders() network call do Allegro przeniesiony do tla (byl blocking co 60s w request, dashboard poll 30s). (2) waitress threads 8->16 (mniej kolejkowania gdy background + polling zajmuja watki). (3) /api/system-stats cache 10s (multi-karta nie liczy psutil N razy).
 - fix(KRYTYCZNE): strona odswiezala sie w nieskonczonosc. Service Worker petla: activate->client.navigate(force reload kart) + controllerchange->location.reload() + reg.update() = nieskonczony cykl. Usuniete wszystkie 3 auto-reload. SW aktualizuje sie cicho.
