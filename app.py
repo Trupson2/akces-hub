@@ -155,6 +155,21 @@ APP_START_TIME = time.time()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
+
+@app.teardown_request
+def _akces_teardown_db(exc=None):
+    """SAFETY-NET anty-'database is locked': po KAZDYM requescie rolluj ewentualna
+    wiszaca transakcje na pooled connection tego watku. Odpala sie wylacznie na
+    GRANICY requestu (nigdy w srodku operacji), wiec nie psuje transakcji w locie.
+    Gdy handler rzucil wyjatek miedzy execute(zapis) a commit(), bez tego pooled
+    connection zostawaloby z otwartym write-lockiem WAL az do restartu procesu —
+    i blokowalo wszystkie inne zapisy ('database is locked')."""
+    try:
+        from modules.database import rollback_idle_transaction
+        rollback_idle_transaction()
+    except Exception:
+        pass
+
 # ── ProxyFix: Cloudflare Tunnel / nginx / ngrok przekazują prawdziwy IP w X-Forwarded-For.
 # Bez tego request.remote_addr == '127.0.0.1' dla WSZYSTKICH userów przez tunnel,
 # co łamie: rate-limiter per-IP, auto-login LAN, block_unauthenticated_external. ──
@@ -8690,7 +8705,16 @@ if __name__ == '__main__':
 
             except Exception as e:
                 log_warning(f"Auto-sync blad: {e}")
-    
+            finally:
+                # SAFETY-NET: watek daemona nie ma Flask teardown_request — sam
+                # czysci ewentualna wiszaca transakcje po kazdym przebiegu synca,
+                # zeby wyciek nie blokowal innych zapisow ('database is locked').
+                try:
+                    from modules.database import rollback_idle_transaction
+                    rollback_idle_transaction()
+                except Exception:
+                    pass
+
     # Uruchom auto-sync zamówień w osobnym wątku
     sync_thread = threading.Thread(target=auto_sync_orders_loop, daemon=True)
     sync_thread.start()
@@ -8726,6 +8750,14 @@ if __name__ == '__main__':
 
             except Exception as e:
                 log_warning(f"Auto-sync ofert blad: {e}")
+            finally:
+                # SAFETY-NET (jak w auto_sync_orders_loop): czysc wiszaca
+                # transakcje daemona po kazdym przebiegu.
+                try:
+                    from modules.database import rollback_idle_transaction
+                    rollback_idle_transaction()
+                except Exception:
+                    pass
 
             time.sleep(900)  # Co 15 minut
 

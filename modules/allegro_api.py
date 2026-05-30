@@ -3894,7 +3894,18 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
     synced = 0
     notified = 0
     stock_updated = 0
-    
+
+    # === Lock-safe FX: rozgrzej cache kursow NBP RAZ, PRZED petla zamowien ===
+    # W petli get_pln_rate() (konwersja walut zamowienia -> PLN) przy wygaslym
+    # cache (12h) robi HTTP do NBP + set_config, trzymajac OTWARTA transakcje
+    # zapisu -> 'database is locked' dla innych watkow. Po rozgrzaniu wszystkie
+    # wywolania w petli to juz tylko odczyt cache (SELECT), zero HTTP/zapisu.
+    try:
+        from modules.fx_rates import get_all_rates as _warm_fx_rates
+        _warm_fx_rates()
+    except Exception as _fxw_err:
+        print(f"[SYNC] FX warmup pominiety: {_fxw_err}")
+
     for order in all_orders:
         if not order or not isinstance(order, dict):
             continue
@@ -4118,6 +4129,7 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
         _order_item_count = len(_order_items) or 1
 
         _order_notify_items = []  # Collect items for grouped notification
+        _restock_msgs = []        # Odlozone restock alerty — wyslane PO commit (lock-safe)
 
         for item in _order_items:
             try:
@@ -4325,8 +4337,9 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                                                 f"\U0001f4cb Paleta: {produkt['paleta_nazwa'] or '?'}\n\n"
                                                 f"Rozważ dokupienie!"
                                             )
-                                            send_telegram(_restock_msg, parse_mode='HTML', silent=False)
-                                            print(f"[SMAR] Restock alert: {produkt['nazwa'][:30]} ({_days} days)")
+                                            # Lock-safe: NIE wysylaj teraz (transakcja otwarta) — odloz na PO commit
+                                            _restock_msgs.append(_restock_msg)
+                                            print(f"[SMAR] Restock alert zakolejkowany: {produkt['nazwa'][:30]} ({_days} days)")
                             except Exception as e:
                                 print(f"[WARN] Restock alert error: {e}")
 
@@ -4362,18 +4375,42 @@ def sync_orders(today_only=True, notify=True, from_date_str=None):
                         'zostalo': _zostalo, 'global_stock': _global_stock
                     })
                     conn.execute('UPDATE sprzedaze SET notified=1 WHERE allegro_order_id=? AND nazwa=?', (order_id, nazwa))
+                    # WhatsApp (HTTP) przeniesiony POZA transakcje — wysylany po commit nizej.
 
-                    try:
-                        if whatsapp_enabled():
-                            delivery = order.get('delivery', {})
-                            address = delivery.get('address', {})
-                            miasto = address.get('city', '')
-                            alert_whatsapp_sprzedaz(nazwa, miasto)
-                    except Exception as e:
-                        print(f"[WARN] Błąd WhatsApp: {e}")
-                    
             except Exception as e:
                 print(f"[ERR] Błąd przy zapisie zamówienia: {e}")
+
+        # === Lock-safe: commit zapisow TEGO zamowienia PRZED jakimkolwiek HTTP ===
+        # Wczesniej jedyny commit dla nowych zamowien byl PO calej petli `for order`
+        # (nizej) — write-lock WAL wisial przez wszystkie zamowienia + wszystkie
+        # powiadomienia Telegram/WhatsApp (HTTP) -> inne watki: 'database is locked'.
+        # Teraz zwalniamy lock per-zamowienie, dopiero potem lecimy z HTTP.
+        try:
+            conn.commit()
+        except Exception as _ce:
+            print(f"[SYNC] commit per-order blad ({order_id[:12]}...): {_ce}")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+
+        # Odlozone restock alerty (juz bez otwartej transakcji)
+        for _rm in _restock_msgs:
+            try:
+                send_telegram(_rm, parse_mode='HTML', silent=False)
+            except Exception as _rme:
+                print(f"[WARN] Restock alert send error: {_rme}")
+
+        # Odlozony WhatsApp per item (HTTP — dopiero po commit)
+        if notify and _order_notify_items:
+            try:
+                if whatsapp_enabled():
+                    _wa_address = (order.get('delivery', {}) or {}).get('address', {}) or {}
+                    _wa_miasto = _wa_address.get('city', '')
+                    for _it in _order_notify_items:
+                        alert_whatsapp_sprzedaz(_it['nazwa'], _wa_miasto)
+            except Exception as _wae:
+                print(f"[WARN] Blad WhatsApp: {_wae}")
 
         # Send GROUPED notification for all items in this order
         if notify and _order_notify_items:

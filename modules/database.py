@@ -65,6 +65,35 @@ def close_connection_pool():
                 pass
         _connection_pool.clear()
 
+
+def rollback_idle_transaction():
+    """SAFETY-NET przeciw trwalemu 'database is locked'.
+
+    Python sqlite3 (domyslny isolation_level) otwiera NIEJAWNA transakcje przy
+    pierwszym INSERT/UPDATE/DELETE i trzyma ja (a wiec i write-lock WAL) az do
+    commit()/rollback(). Jesli kod rzuci wyjatek MIEDZY execute(zapis) a commit()
+    — a w wielu miejscach try/except lyka blad bez rollback — to pooled connection
+    zostaje z OTWARTA transakcja. Pula nie zwalnia polaczen (zyja per-watek na
+    zawsze), wiec taki wyciek blokuje WSZYSTKIE zapisy az do restartu procesu.
+
+    Ta funkcja rolluje wiszaca transakcje na connection BIEZACEGO watku. WOLAC
+    TYLKO NA GRANICY (Flask teardown_request, koniec przebiegu daemona synca),
+    gdzie zadna operacja tego watku nie jest w toku — inaczej skasowalaby zapisy
+    w locie (get_db() bywa wolane re-entrant w srodku transakcji, np. przez
+    get_config()). No-op jesli watek nie ma polaczenia albo nie ma transakcji.
+    """
+    thread_id = threading.get_ident()
+    conn = _connection_pool.get(thread_id)
+    if conn is None:
+        return
+    try:
+        if conn.in_transaction:
+            conn.rollback()
+            print(f"[DB] Rollback wiszacej transakcji (watek {thread_id}) "
+                  f"— safety-net anty-'database is locked'")
+    except Exception:
+        pass
+
 def retry_db_operation(func, max_retries=5, delay=0.5):
     """
     Wykonuje operację bazodanową z retry w przypadku database locked.
