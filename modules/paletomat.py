@@ -7129,8 +7129,10 @@ def publish_single_draft(oferta_id):
             ''')
 
     # Auto-generuj GPSR
+    # v1.0.116 FIX: o to sqlite3.Row (NIE ma .get()) + oferty NIE MA kolumny
+    # kategoria. o.get('kategoria') rzucal AttributeError -> 500.
     from .utils import generuj_gpsr_info
-    gpsr = generuj_gpsr_info(o['tytul'] or '', o.get('kategoria', '') or '')
+    gpsr = generuj_gpsr_info(o['tytul'] or '', '')
 
     # Wystaw na Allegro
     result, error = create_offer(o['tytul'], o['opis'], o['cena'], ilosc=o['ilosc'], gpsr=gpsr)
@@ -7203,7 +7205,10 @@ def publish_all_drafts():
     from .utils import generuj_gpsr_info
 
     for draft in drafts:
-        gpsr = generuj_gpsr_info(draft['tytul'] or '', draft.get('kategoria', '') or '')
+        # v1.0.116 FIX: draft to sqlite3.Row (NIE ma .get()!) + tabela oferty
+        # NIE MA kolumny kategoria. draft.get('kategoria') rzucal AttributeError
+        # -> 500 przy publish-all. GPSR generuje z samego tytulu (kategoria pusta).
+        gpsr = generuj_gpsr_info(draft['tytul'] or '', '')
         result, error = create_offer(draft['tytul'], draft['opis'], draft['cena'], ilosc=draft['ilosc'], gpsr=gpsr)
         
         if error:

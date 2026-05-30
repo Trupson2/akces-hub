@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- fix(500): publish-all + publish-single (wystaw wszystkie/pojedynczy szkic) rzucaly 500. draft.get('kategoria') na sqlite3.Row - Row NIE MA .get() + oferty nie ma kolumny kategoria. Maciek trafil przez publish-all. Adrian nie bo wystawial przez mass-create (ma dict(p)).
 - fix(deps): requirements.txt mial ZLY pakiet google-generativeai (stary) zamiast google-genai (nowy, ktory kod faktycznie importuje przez 'from google import genai'). Swieza instalacja (Macek) dostawala stary -> genai.Client() nie istnieje -> Gemini fail. Zmienione na google-genai>=1.0.0.
 - fix(update): git fetch + reset --hard origin zamiast git pull. Caly dzien pull padal (divergent branches, merge conflicts CHANGELOG, local changes) i wymagal recznego SSH. reset --hard = deterministyczne, nigdy nie pada. Dane klienta untracked -> nietkniete.
 - feat(palety): "Nowa paleta" ma 3 drogi - "Utworz + skaner/ASIN" (scraper), "Utworz + wgraj Excel" (import z preselekcja palety), "Sama paleta" (lista). Import czyta ?paleta_id= i preselektuje.
