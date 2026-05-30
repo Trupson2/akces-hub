@@ -1,5 +1,13 @@
 # Historia zmian (auto-generated)
 
+## 30.05.2026
+
+- fix(allegro): spłaszczanie zagnieżdżonych `<p>` w opisie oferty. Allegro odrzucało wystawienie błędem `description...content: Invalid tag: "p", allowed tags: {b}` gdy fallback-opis (Gemini timeout) zwracał `<p><p>...</p></p>`. clean_html_for_allegro trzyma teraz tylko najbardziej zewnętrzny akapit.
+- fix(2fa): zapis przy włączaniu 2FA odporny na `database is locked`. UPDATE w totp_setup rzucał 500 gdy background sync ofert trzymał write-lock SQLite. Teraz busy_timeout 4s + 4 próby; gdy nadal zajęte → czytelny komunikat i klik ponownie (bez skanowania QR od nowa).
+- feat(deploy): instalator instancji na VPS/serwerze + Cloudflare Tunnel (`deploy/setup_vps_cloudflare.sh`, `docs/DEPLOY_VPS_CLOUDFLARE.md`). Tryb dla zajętej maszyny: konfigurowalny `--port` (env `AKCES_PORT`), izolowany tunel per klient (named-mode, nie rusza istniejącego cloudflared). Multi-tenant per `--client`.
+- fix(deploy): tunel named-mode na zajętej maszynie (omija wspólny `/etc/cloudflared/config.yml`, który przejmował token).
+- perf(wystaw): keepalive w trakcie create_offer/Gemini w mass-create-stream (scraper) — ping co 2s w wątku, strumień nie pada przy długim Gemini.
+
 ## 29.05.2026
 
 - fix(stream): TWARDY timeout 35s na Gemini opis+GPSR w mass-create. U Macka Gemini generuje >54s (wolne/wisi) -> stream timeout mimo paddingu. Po 35s -> fallback opis (szablon), wystawianie LECI DALEJ. Klient poprawi opis pozniej. Odblokowuje wystawianie gdy Gemini wolne.
