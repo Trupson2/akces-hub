@@ -904,26 +904,50 @@ def totp_setup():
             except Exception:
                 pass
         else:
-            # OK — wygeneruj backup codes i zapisz
+            # OK — wygeneruj backup codes i zapisz.
             plain, hashed_json = _totp.generate_backup_codes(n=8)
-            conn.execute(
-                'UPDATE users SET totp_secret = ?, totp_enabled = 1, '
-                'totp_backup_codes = ?, totp_last_verified_at = CURRENT_TIMESTAMP '
-                'WHERE id = ?',
-                (secret, hashed_json, user['id'])
-            )
-            conn.commit()
-            session['2fa_verified'] = True
-            backup_codes_plain = plain
+            # Background sync ofert potrafi trzymac write-lock na SQLite.
+            # Zamiast 500 ("database is locked") — krotszy busy_timeout + kilka
+            # prob; gdy nadal zajete, czytelny komunikat i user klika ponownie
+            # (ten sam secret, bez ponownego skanowania QR).
+            import time as _time
             try:
-                from modules.database import log_admin_action
-                log_admin_action(
-                    '2fa_enable',
-                    details={'username': user['username']},
-                    success=True,
-                )
+                conn.execute('PRAGMA busy_timeout=4000')
             except Exception:
                 pass
+            _saved = False
+            for _attempt in range(4):
+                try:
+                    conn.execute(
+                        'UPDATE users SET totp_secret = ?, totp_enabled = 1, '
+                        'totp_backup_codes = ?, totp_last_verified_at = CURRENT_TIMESTAMP '
+                        'WHERE id = ?',
+                        (secret, hashed_json, user['id'])
+                    )
+                    conn.commit()
+                    _saved = True
+                    break
+                except sqlite3.OperationalError as _e:
+                    if 'locked' in str(_e).lower():
+                        _time.sleep(0.5)
+                        continue
+                    raise
+            if not _saved:
+                error = ('Baza chwilowo zajeta (trwa synchronizacja ofert). '
+                         'Odczekaj ~10 s i kliknij "Potwierdz i wlacz 2FA" '
+                         'jeszcze raz — nie musisz skanowac QR ponownie.')
+            else:
+                session['2fa_verified'] = True
+                backup_codes_plain = plain
+                try:
+                    from modules.database import log_admin_action
+                    log_admin_action(
+                        '2fa_enable',
+                        details={'username': user['username']},
+                        success=True,
+                    )
+                except Exception:
+                    pass
 
     # GET lub POST fail — wygeneruj (lub zachowaj z POSTu) QR i secret
     if backup_codes_plain:
