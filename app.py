@@ -830,6 +830,24 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 app.logger.setLevel(logging.ERROR)
 
+@app.route('/api/health/ssetest')
+def _sse_diag_test():
+    """Diagnostyczny SSE: ping co 2s przez 60s. Sluzy do izolacji czy
+    strumien zrywa apka/waitress (localhost) czy tunel/Cloudflare.
+    Pod prefiksem /api/health -> dostepny bez logowania. Brak danych wrazliwych."""
+    from flask import Response as _Resp
+    import time as _tt
+    def _gen():
+        yield "retry: 15000\n\n"
+        yield ":" + (" " * 2048) + "\n\n"  # padding flush
+        for _i in range(30):
+            yield f"data: ping {_i} t={_tt.time():.0f}\n\n"
+            _tt.sleep(2)
+        yield "data: DONE\n\n"
+    return _Resp(_gen(), mimetype='text/event-stream',
+                 headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
 @app.errorhandler(500)
 def handle_500(e):
     """500 handler — log full details server-side, return generic message to client."""
