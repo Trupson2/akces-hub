@@ -41,6 +41,20 @@ IMAGES_DIR = DOWNLOADS_DIR  # Backward compatibility
 MAX_RETRIES = 3
 RETRY_DELAY = 2
 
+# ============================================================
+# TOKEN REFRESH — anty-storm + anty-wyscig (FIX 2026-05-30)
+# ============================================================
+# Bez tego: martwy refresh_token (invalid_grant) powodowal STORM — KAZDY 401
+# (kazda oferta w sync) wolal refresh -> 400 invalid_grant, kilka razy/s,
+# spamujac allegro.pl/auth/oauth/token (ryzyko rate-limit/ban client_id).
+# Plus brak mutexa = kilka watkow odswiezalo naraz -> Allegro rotuje refresh
+# token -> jeden zapis nadpisuje drugi NIEWAZNYM -> to wlasnie zabija token.
+import threading as _threading
+_refresh_mutex = _threading.Lock()
+_refresh_cooldown = {'until': 0.0}     # nie probuj refresh do tego czasu (epoch s)
+_REFRESH_COOLDOWN_INVALID = 300        # 5 min ciszy po invalid_grant (token martwy)
+_REFRESH_COOLDOWN_TRANSIENT = 15       # 15 s ciszy po bledzie przejsciowym (5xx/siec)
+
 def ensure_images_dir(asin=None):
     """
     Tworzy folder na zdjęcia jeśli nie istnieje.
@@ -533,55 +547,106 @@ def _safe_resp_err(resp):
 
 
 def refresh_access_token():
-    config = get_allegro_config()
-    if not config['refresh_token']:
-        print("[TokenRefresh] Brak refresh_token — nie można odświeżyć")
-        return False
-    if not config.get('client_secret'):
-        print("[TokenRefresh] Brak client_secret — nie można odświeżyć")
+    # ANTY-STORM: po invalid_grant (martwy refresh_token) NIE wala w token
+    # endpoint na kazdym 401 — cooldown. Bez tego setki POST /auth/oauth/token
+    # na sekunde (widziane w logach 2026-05-30) = ryzyko ban client_id.
+    if time.time() < _refresh_cooldown['until']:
         return False
 
-    _, token_url, _ = get_api_urls()
+    # ANTY-WYSCIG: tylko JEDEN watek odswieza naraz. Rownolegle refreshe ->
+    # Allegro rotuje refresh_token -> jeden zapis nadpisuje drugi niewaznym ->
+    # invalid_grant. Mutex + double-check eliminuje wyscig.
+    with _refresh_mutex:
+        # re-check cooldown — inny watek mogl wlasnie dostac invalid_grant
+        if time.time() < _refresh_cooldown['until']:
+            return False
 
-    try:
-        auth_string = f"{config['client_id']}:{config['client_secret']}"
-        auth_bytes = base64.b64encode(auth_string.encode()).decode()
+        config = get_allegro_config()
 
-        headers = {
-            'Authorization': f'Basic {auth_bytes}',
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-        data = {
-            'grant_type': 'refresh_token',
-            'refresh_token': config['refresh_token'],
-            'redirect_uri': config['redirect_uri']
-        }
+        # double-check: moze inny watek wlasnie odswiezyl, gdy czekalismy na mutex
+        if config.get('token_expires'):
+            try:
+                if datetime.now() < datetime.fromisoformat(config['token_expires']):
+                    return True
+            except Exception:
+                pass
 
-        print(f"[TokenRefresh] POST {token_url} (client_id: {config['client_id'][:8]}...)")
-        response = requests.post(token_url, headers=headers, data=data, timeout=30)
-        print(f"[TokenRefresh] Status: {response.status_code}")
+        if not config['refresh_token']:
+            print("[TokenRefresh] Brak refresh_token — nie można odświeżyć")
+            return False
+        if not config.get('client_secret'):
+            print("[TokenRefresh] Brak client_secret — nie można odświeżyć")
+            return False
 
-        if response.status_code == 200:
-            tokens = response.json()
-            set_config('allegro_access_token', tokens['access_token'])
-            # FIX 2026-05-09 BUG #2: Allegro rotuje refresh_token przy
-            # kazdym refresh - nowy 30-dniowy window. Zapisujemy expires_at
-            # zeby daemon mogl alertowac przy zblizajacym sie wygasnieciu.
-            if 'refresh_token' in tokens and tokens['refresh_token'] != config['refresh_token']:
-                set_config('allegro_refresh_token', tokens['refresh_token'])
-                refresh_expires = datetime.now() + timedelta(days=30)
-                set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
-            expires_in = tokens.get('expires_in', 43200)
-            expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
-            set_config('allegro_token_expires', expires_at.isoformat())
-            print(f"[TokenRefresh] [OK] Token odświeżony, wygasa: {expires_at.isoformat()}")
-            return True
-        else:
+        _, token_url, _ = get_api_urls()
+
+        try:
+            auth_string = f"{config['client_id']}:{config['client_secret']}"
+            auth_bytes = base64.b64encode(auth_string.encode()).decode()
+
+            headers = {
+                'Authorization': f'Basic {auth_bytes}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            data = {
+                'grant_type': 'refresh_token',
+                'refresh_token': config['refresh_token'],
+                'redirect_uri': config['redirect_uri']
+            }
+
+            print(f"[TokenRefresh] POST {token_url} (client_id: {config['client_id'][:8]}...)")
+            response = requests.post(token_url, headers=headers, data=data, timeout=30)
+            print(f"[TokenRefresh] Status: {response.status_code}")
+
+            if response.status_code == 200:
+                tokens = response.json()
+                set_config('allegro_access_token', tokens['access_token'])
+                # FIX 2026-05-09 BUG #2: Allegro rotuje refresh_token przy
+                # kazdym refresh - nowy 30-dniowy window. Zapisujemy expires_at
+                # zeby daemon mogl alertowac przy zblizajacym sie wygasnieciu.
+                if 'refresh_token' in tokens and tokens['refresh_token'] != config['refresh_token']:
+                    set_config('allegro_refresh_token', tokens['refresh_token'])
+                    refresh_expires = datetime.now() + timedelta(days=30)
+                    set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
+                expires_in = tokens.get('expires_in', 43200)
+                expires_at = datetime.now() + timedelta(seconds=expires_in - 300)
+                set_config('allegro_token_expires', expires_at.isoformat())
+                # Sukces — wyczysc cooldown + flage "token martwy"
+                _refresh_cooldown['until'] = 0.0
+                try:
+                    if get_config('allegro_token_invalid', '') == '1':
+                        set_config('allegro_token_invalid', '')
+                except Exception:
+                    pass
+                print(f"[TokenRefresh] [OK] Token odświeżony, wygasa: {expires_at.isoformat()}")
+                return True
+
+            # Blad — rozroznij invalid_grant (token MARTWY) od przejsciowego (5xx)
+            err_code = ''
+            try:
+                err_code = (response.json() or {}).get('error', '')
+            except Exception:
+                pass
             print(f"[TokenRefresh] [ERR] Błąd: {_safe_resp_err(response)}")
-        return False
-    except Exception as e:
-        print(f"[TokenRefresh] [ERR] Wyjątek: {e}")
-        return False
+
+            if err_code == 'invalid_grant' or response.status_code == 400:
+                # refresh_token nie do uratowania — STOP storm, oznacz do re-loginu.
+                _refresh_cooldown['until'] = time.time() + _REFRESH_COOLDOWN_INVALID
+                try:
+                    set_config('allegro_token_invalid', '1')
+                except Exception:
+                    pass
+                print(f"[TokenRefresh] invalid_grant — refresh_token martwy. Cisza "
+                      f"{_REFRESH_COOLDOWN_INVALID}s. WYMAGANE ponowne logowanie: /allegro")
+            else:
+                # blad przejsciowy (5xx/inny) — krotka cisza zeby nie hamerować
+                _refresh_cooldown['until'] = time.time() + _REFRESH_COOLDOWN_TRANSIENT
+            return False
+        except Exception as e:
+            # siec/timeout — krotka cisza, nie storm
+            _refresh_cooldown['until'] = time.time() + _REFRESH_COOLDOWN_TRANSIENT
+            print(f"[TokenRefresh] [ERR] Wyjątek: {e}")
+            return False
 
 
 def allegro_request(method, endpoint, data=None, params=None, _retry=False, _attempt=0):
@@ -5552,6 +5617,12 @@ def callback():
             refresh_lifetime_days = 1 if is_sandbox else 30
             refresh_expires = datetime.now() + timedelta(days=refresh_lifetime_days)
             set_config('allegro_refresh_token_expires_at', refresh_expires.isoformat())
+
+            # Re-login OK — wyczysc anty-storm cooldown + flage "token martwy".
+            # Bez tego po przelogowaniu refresh moglby jeszcze przez chwile byc
+            # blokowany cooldownem (gdyby access token zaraz wygasl).
+            _refresh_cooldown['until'] = 0.0
+            set_config('allegro_token_invalid', '')
 
             # Wyczyść state
             set_config('allegro_oauth_state', '')
