@@ -7181,6 +7181,14 @@ def offline():
 # ============================================================
 # SYNCHRONIZACJA ZAMÓWIEŃ Z ALLEGRO
 # ============================================================
+_sync_hist_job = {'running': False, 'synced': 0, 'error': None, 'done': False, 'from': ''}
+
+
+@app.route('/sync-historyczny/status')
+def sync_historyczny_status():
+    return jsonify(_sync_hist_job)
+
+
 @app.route('/sync-historyczny', methods=['GET', 'POST'])
 def sync_historyczny():
     from modules.allegro_api import sync_orders, is_authenticated
@@ -7193,10 +7201,45 @@ def sync_historyczny():
         from_date = request.form.get('from_date', '')
         if not from_date:
             return redirect('/sync-historyczny')
-        synced, error = sync_orders(today_only=False, from_date_str=from_date)
-        msg = f'Zsynchronizowano {synced} zamowien od {from_date}' if not error else f'Blad: {error}'
-        kolor = '#22c55e' if not error else '#ef4444'
-        return f'<html><head><meta http-equiv="refresh" content="4;url=/magazyn/statystyki"></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:1.5rem;color:{kolor};padding:40px">{msg}</div><div style="color:#64748b">Przekierowanie...</div></div></body></html>'
+        # FIX (Cloudflare 524): sync historyczny moze trwac >100s -> tunel ubijal
+        # request. Uruchamiamy sync_orders W TLE i ZWRACAMY OD RAZU strone ktora
+        # pollluje /sync-historyczny/status. Brak dlugiego requestu = brak 524.
+        if not _sync_hist_job['running']:
+            _sync_hist_job.update({'running': True, 'synced': 0, 'error': None, 'done': False, 'from': from_date})
+            def _run_hist(fd):
+                try:
+                    _s, _e = sync_orders(today_only=False, from_date_str=fd)
+                    _sync_hist_job.update({'synced': _s or 0, 'error': _e})
+                except Exception as _ex:
+                    _sync_hist_job['error'] = str(_ex)
+                finally:
+                    _sync_hist_job.update({'running': False, 'done': True})
+            import threading as _th
+            _th.Thread(target=_run_hist, args=(from_date,), daemon=True).start()
+        return '''<html><head><title>Sync historyczny</title><meta charset="utf-8">
+<style>@keyframes pls{0%{opacity:.4}50%{opacity:1}100%{opacity:.4}}</style></head>
+<body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+<div style="background:#12121a;border-radius:16px;padding:30px;min-width:340px;text-align:center">
+<h2 style="margin:0 0 10px"><span class=material-symbols-outlined>sync</span> Sync historyczny w toku...</h2>
+<div id="st" style="color:#94a3b8;margin:14px 0;font-size:1rem;animation:pls 1.2s infinite">Pobieram zamowienia w tle... (moze potrwac kilka minut)</div>
+<a href="/magazyn/statystyki" style="display:block;margin-top:14px;color:#64748b;font-size:0.85rem">Mozesz zamknac — sync leci dalej w tle</a>
+</div>
+<script>
+async function poll(){
+  try{
+    const r=await fetch('/sync-historyczny/status'); const j=await r.json();
+    if(j.done){
+      var el=document.getElementById('st'); el.style.animation='';
+      if(j.error){el.style.color='#ef4444'; el.textContent='Blad: '+j.error;}
+      else{el.style.color='#22c55e'; el.style.fontSize='1.2rem'; el.textContent='Gotowe! Zsynchronizowano '+(j.synced||0)+' zamowien';}
+      setTimeout(function(){location.href='/magazyn/statystyki';},2500); return;
+    }
+  }catch(e){}
+  setTimeout(poll,3000);
+}
+poll();
+</script>
+</body></html>'''
     
     miesiac_temu = (date.today().replace(day=1) - timedelta(days=1)).replace(day=1).strftime('%Y-%m-%d')
     return f'<html><head><title>Sync historyczny</title></head><body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="background:#12121a;border-radius:16px;padding:30px;min-width:320px"><h2 style="margin:0 0 15px"><span class=material-symbols-outlined>sync</span> Sync historyczny</h2><p style="color:#64748b;margin-bottom:20px">Pobierz zamowienia od wybranej daty (np. poprzedni miesiac)</p><form method="POST"><input type="hidden" name="csrf_token" value="{generate_csrf()}"><label style="display:block;color:#94a3b8;margin-bottom:6px">Data od:</label><input type="date" name="from_date" value="{miesiac_temu}" style="width:100%;padding:10px;background:#1e1e2e;border:1px solid #334155;border-radius:8px;color:#fff;font-size:1rem;box-sizing:border-box;margin-bottom:15px"><button type="submit" style="width:100%;padding:12px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer"><span class=material-symbols-outlined>sync</span> Synchronizuj</button></form><a href="/magazyn/statystyki" style="display:block;text-align:center;margin-top:15px;color:#64748b;font-size:0.85rem">Anuluj</a></div></body></html>'
