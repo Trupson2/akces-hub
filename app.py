@@ -7181,7 +7181,7 @@ def offline():
 # ============================================================
 # SYNCHRONIZACJA ZAMÓWIEŃ Z ALLEGRO
 # ============================================================
-_sync_hist_job = {'running': False, 'synced': 0, 'error': None, 'done': False, 'from': ''}
+_sync_hist_job = {'running': False, 'synced': 0, 'zwroty': 0, 'error': None, 'done': False, 'from': ''}
 
 
 @app.route('/sync-historyczny/status')
@@ -7205,11 +7205,34 @@ def sync_historyczny():
         # request. Uruchamiamy sync_orders W TLE i ZWRACAMY OD RAZU strone ktora
         # pollluje /sync-historyczny/status. Brak dlugiego requestu = brak 524.
         if not _sync_hist_job['running']:
-            _sync_hist_job.update({'running': True, 'synced': 0, 'error': None, 'done': False, 'from': from_date})
+            _sync_hist_job.update({'running': True, 'synced': 0, 'zwroty': 0, 'error': None, 'done': False, 'from': from_date})
             def _run_hist(fd):
                 try:
+                    from modules.allegro_api import sync_returns as _sync_ret
+                    # KROK 1: zamowienia
                     _s, _e = sync_orders(today_only=False, from_date_str=fd)
                     _sync_hist_job.update({'synced': _s or 0, 'error': _e})
+                    # KROK 2: zwroty per miesiac (od fd do dzis) — Allegro odejmuje
+                    # zwroty, wiec apka tez musi je oznaczyc, zeby przychod sie zgadzal.
+                    try:
+                        from datetime import date as _date
+                        _zw = 0
+                        _yy, _mm = int(fd[:4]), int(fd[5:7])
+                        _tod = _date.today()
+                        _g = 0
+                        while (_yy < _tod.year or (_yy == _tod.year and _mm <= _tod.month)) and _g < 48:
+                            try:
+                                _u, _er = _sync_ret(f'{_yy}-{_mm:02d}')
+                                _zw += (_u or 0)
+                                _sync_hist_job['zwroty'] = _zw
+                            except Exception:
+                                pass
+                            _mm += 1
+                            if _mm > 12:
+                                _mm = 1; _yy += 1
+                            _g += 1
+                    except Exception as _ze:
+                        print(f'[SYNC-HIST] zwroty: {_ze}')
                 except Exception as _ex:
                     _sync_hist_job['error'] = str(_ex)
                 finally:
@@ -7221,7 +7244,7 @@ def sync_historyczny():
 <body style="background:#0a0a0f;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
 <div style="background:#12121a;border-radius:16px;padding:30px;min-width:340px;text-align:center">
 <h2 style="margin:0 0 10px"><span class=material-symbols-outlined>sync</span> Sync historyczny w toku...</h2>
-<div id="st" style="color:#94a3b8;margin:14px 0;font-size:1rem;animation:pls 1.2s infinite">Pobieram zamowienia w tle... (moze potrwac kilka minut)</div>
+<div id="st" style="color:#94a3b8;margin:14px 0;font-size:1rem;animation:pls 1.2s infinite">Pobieram zamowienia + zwroty w tle... (moze potrwac kilka minut)</div>
 <a href="/magazyn/statystyki" style="display:block;margin-top:14px;color:#64748b;font-size:0.85rem">Mozesz zamknac — sync leci dalej w tle</a>
 </div>
 <script>
@@ -7231,7 +7254,7 @@ async function poll(){
     if(j.done){
       var el=document.getElementById('st'); el.style.animation='';
       if(j.error){el.style.color='#ef4444'; el.textContent='Blad: '+j.error;}
-      else{el.style.color='#22c55e'; el.style.fontSize='1.2rem'; el.textContent='Gotowe! Zsynchronizowano '+(j.synced||0)+' zamowien';}
+      else{el.style.color='#22c55e'; el.style.fontSize='1.2rem'; el.textContent='Gotowe! '+(j.synced||0)+' zamowien, odjeto '+(j.zwroty||0)+' zwrotow';}
       setTimeout(function(){location.href='/magazyn/statystyki';},2500); return;
     }
   }catch(e){}
