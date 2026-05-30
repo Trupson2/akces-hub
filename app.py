@@ -150,6 +150,22 @@ def _get_version():
             pass
     return ver
 
+
+# FIX: wersja odswiezana na zywo (cache 30s). Global VERSION jest liczony RAZ przy
+# starcie procesu -> po manual `git reset/pull` BEZ restartu pasek pokazywal stary
+# commit. Ta funkcja przelicza `git HEAD` co 30s, wiec pasek jest aktualny.
+_version_cache = {'v': None, 't': 0.0}
+
+def _get_version_live():
+    now = time.time()
+    if _version_cache['v'] is None or (now - _version_cache['t']) > 30:
+        try:
+            _version_cache['v'] = _get_version()
+            _version_cache['t'] = now
+        except Exception:
+            pass
+    return _version_cache['v'] or VERSION
+
 VERSION = _get_version()
 APP_START_TIME = time.time()
 
@@ -802,7 +818,9 @@ def inject_branding():
             days_rem = get_days_remaining()
             if days_rem is not None:
                 lic_days_left_num = days_rem
-                if days_rem >= 0:
+                if days_rem > 3650:
+                    lic_days_left = ''   # >10 lat = bezterminowa/self-hosted, nie pokazuj absurdu "35995 dni"
+                elif days_rem >= 0:
                     lic_days_left = f'{days_rem} dni'
                 else:
                     lic_days_left = 'Wygasla!'
@@ -834,7 +852,7 @@ def inject_branding():
         'brand_name': _bn,
         'brand_color': _bc,
         'brand_logo': _bl,
-        'version': VERSION,
+        'version': _get_version_live(),
         'update_available': _ua,
         'lic_plan': lic_plan,
         'lic_expires': lic_expires,
