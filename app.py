@@ -5780,19 +5780,27 @@ def narzedzia_uzupelnij_zdjecia_amazon():
         # (prawidłowy format dla ASIN bez scrapowania).
         # Plus warunek nie tylko gdy zdjecie_url puste, ale tez gdy ma stary
         # ZŁY format (zawiera 'images/I/'+ASIN albo placeholder z nieistniejacym URL).
-        r3 = conn.execute("""
-            UPDATE produkty
-            SET zdjecie_url = 'https://m.media-amazon.com/images/P/' || UPPER(TRIM(asin)) || '.01._SL500_.jpg'
-            WHERE asin IS NOT NULL AND TRIM(asin) != ''
-              AND LENGTH(TRIM(asin)) >= 8
+        # FIX 2026-05-30: NIE ustawiamy juz /P/{ASIN} URL-i — zwracaja pusty 43B GIF
+        # dla wiekszosci B0-ASIN-ow. Zamiast tego UJAWNIAMY lokalne zdjecia juz
+        # pobrane (scraper "Pobierz zdjecia"/wystawianie) dla produktow z pustym lub
+        # zlamanym (/P/, /I/) zdjecie_url. Realne POBIERANIE brakujacych = przycisk
+        # "Pobierz zdjecia" na stronie palety (scrapuje /dp/{ASIN}, streamowane).
+        _base_dir = os.path.dirname(os.path.abspath(__file__))
+        _need = conn.execute("""
+            SELECT id, asin FROM produkty
+            WHERE asin IS NOT NULL AND TRIM(asin) != '' AND LENGTH(TRIM(asin)) >= 8
               AND TRIM(UPPER(asin)) NOT IN ('NONE', 'NAN', 'N/A')
-              AND (
-                zdjecie_url IS NULL
-                OR zdjecie_url = ''
-                OR zdjecie_url LIKE '%images/I/%'  -- stary nieprawidłowy format
-              )
-        """)
-        photos = r3.rowcount
+              AND (zdjecie_url IS NULL OR zdjecie_url = ''
+                   OR zdjecie_url LIKE '%images/P/%' OR zdjecie_url LIKE '%images/I/%')
+        """).fetchall()
+        photos = 0
+        for _pr in _need:
+            _aa = (_pr['asin'] or '').strip().upper()
+            _lf = os.path.join(_base_dir, 'static', 'downloads', _aa, 'image_1.jpg')
+            if os.path.exists(_lf) and os.path.getsize(_lf) > 1000:
+                conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?',
+                             (f'/static/downloads/{_aa}/image_1.jpg', _pr['id']))
+                photos += 1
 
         conn.commit()
         msg_parts = []
@@ -8343,7 +8351,8 @@ if __name__ == '__main__':
     if os.path.exists('akces_hub.db'):
         try:
             # Test połączenia
-            test_conn = sqlite3.connect('akces_hub.db')
+            test_conn = sqlite3.connect('akces_hub.db', timeout=30)
+            test_conn.execute('PRAGMA busy_timeout=30000')
             test_conn.execute('PRAGMA journal_mode=WAL')
             test_conn.close()
         except sqlite3.DatabaseError:
