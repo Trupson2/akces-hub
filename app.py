@@ -563,8 +563,12 @@ def csrf_protect_forms():
     """
     if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
         return
-    # Login/setup nie wymaga CSRF — sesja może być wygasła
-    if request.path in ('/auth/login', '/auth/setup', '/setup'):
+    # Login/setup/2FA nie wymaga CSRF — sesja może być wygasła / w trakcie logowania.
+    # /auth/2fa/verify w scenariuszu RE-VERIFY ma już session['user_id'], więc wpadał
+    # w enforcement i wywalał 400 "CSRF token wygasł" gdy token w formularzu był stary
+    # (np. strona otwarta chwilę, sesja zrotowana). Spójne z auth.py PUBLIC_PATHS,
+    # które już zawiera '/auth/2fa/verify'. Atak CSRF i tak wymagałby kodu TOTP.
+    if request.path in ('/auth/login', '/auth/setup', '/setup', '/auth/2fa/verify'):
         return
     # Tylko zalogowani użytkownicy muszą mieć CSRF (zewnętrzne API webhooks nie mają sesji)
     # NOTE: auth.py sets session['user_id'], NOT session['user']
