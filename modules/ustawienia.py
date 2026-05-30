@@ -176,6 +176,19 @@ def ustawienia_kreator():
     ]
     status_items = [(status_dot(k), name) for k, name in integrations]
 
+    # Modele Gemini — typ 'datalist': wybierasz Z LISTY albo wpisujesz DOWOLNE ID
+    # (np. przyszly model) bez ruszania kodu. ID zweryfikowane z docs Google
+    # (ai.google.dev, maj 2026), najnowsze na gorze. Nowy model = jedna linia tu.
+    _GEMINI_MODELS = [
+        ('gemini-3.5-flash', 'Gemini 3.5 Flash (najnowszy, ~Pro w cenie Flash)'),
+        ('gemini-3-flash', 'Gemini 3 Flash'),
+        ('gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite (najszybszy/najtanszy)'),
+        ('gemini-3.1-pro-preview', 'Gemini 3.1 Pro (preview, reasoning)'),
+        ('gemini-2.5-flash', 'Gemini 2.5 Flash (stabilny, domyslny)'),
+        ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite'),
+        ('gemini-2.0-flash', 'Gemini 2.0 Flash (starszy)'),
+    ]
+
     # Build sections config for template
     sections = [
         {
@@ -201,45 +214,17 @@ def ustawienia_kreator():
             'hint': 'Pobierz klucz z <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> (darmowy!)',
             'fields': [
                 {'name': 'gemini_api_key', 'label': 'API Key', 'type': 'password', 'placeholder': 'AIzaSy...'},
-                {'name': 'gemini_model', 'label': 'Model AI (globalny fallback)', 'type': 'select', 'options': [
-                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
-                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
-                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
-                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
-                ]},
+                {'name': 'gemini_model', 'label': 'Model AI (globalny fallback)', 'type': 'datalist', 'options': _GEMINI_MODELS,
+                 'hint': 'Wybierz z listy LUB wpisz dowolne ID modelu (tez przyszle) — patrz ai.google.dev/gemini-api/docs/models'},
                 {'type': 'header', 'label': 'Model AI per sektor'},
-                {'name': 'ai_model_analiza_palet', 'label': 'Analiza palet', 'type': 'select',
-                 'hint': 'Analiza manifestu palety, wycena produktów, czas sprzedaży',
-                 'options': [
-                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
-                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
-                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
-                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
-                ]},
-                {'name': 'ai_model_zdjecia', 'label': 'Analiza zdjęć (stan produktu)', 'type': 'select',
-                 'hint': 'Ocena stanu produktu ze zdjęcia',
-                 'options': [
-                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
-                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
-                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
-                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
-                ]},
-                {'name': 'ai_model_wycena', 'label': 'Auto-wycena produktów', 'type': 'select',
-                 'hint': 'Automatyczna wycena cen sprzedaży produktów',
-                 'options': [
-                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
-                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
-                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
-                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
-                ]},
-                {'name': 'ai_model_tytuly', 'label': 'Generowanie tytułów Allegro', 'type': 'select',
-                 'hint': 'Generowanie SEO tytułów ofert Allegro',
-                 'options': [
-                    ('gemini-2.5-flash', 'Gemini 2.5 Flash (zalecany)'),
-                    ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (szybszy, tańszy)'),
-                    ('gemini-2.0-flash', 'Gemini 2.0 Flash (poprzednia generacja)'),
-                    ('gemini-2.0-flash-lite', 'Gemini 2.0 Flash Lite'),
-                ]},
+                {'name': 'ai_model_analiza_palet', 'label': 'Analiza palet', 'type': 'datalist', 'options': _GEMINI_MODELS,
+                 'hint': 'Analiza manifestu palety, wycena produktów, czas sprzedaży'},
+                {'name': 'ai_model_zdjecia', 'label': 'Analiza zdjęć (stan produktu)', 'type': 'datalist', 'options': _GEMINI_MODELS,
+                 'hint': 'Ocena stanu produktu ze zdjęcia (wymaga modelu multimodalnego)'},
+                {'name': 'ai_model_wycena', 'label': 'Auto-wycena produktów', 'type': 'datalist', 'options': _GEMINI_MODELS,
+                 'hint': 'Automatyczna wycena cen sprzedaży produktów'},
+                {'name': 'ai_model_tytuly', 'label': 'Generowanie tytułów Allegro', 'type': 'datalist', 'options': _GEMINI_MODELS,
+                 'hint': 'Generowanie SEO tytułów ofert Allegro'},
             ]
         },
         {
@@ -471,6 +456,14 @@ def ustawienia_kreator():
                 <option value="{{ val }}" {{ 'selected' if cfg.get(field.name, '') == val else '' }}>{{ label }}</option>
                 {% endfor %}
             </select>
+            {% elif field.type == 'datalist' %}
+            <input list="{{ field.name }}_dl" name="{{ field.name }}" value="{{ cfg.get(field.name, '') }}"
+                placeholder="{{ field.get('placeholder', 'wybierz lub wpisz model...') }}" autocomplete="off">
+            <datalist id="{{ field.name }}_dl">
+                {% for val, label in field.options %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+            </datalist>
             {% else %}
             <input type="{{ field.type }}" name="{{ field.name }}" value="{{ cfg.get(field.name, '') }}"
                 placeholder="{{ field.get('placeholder', '') }}">
