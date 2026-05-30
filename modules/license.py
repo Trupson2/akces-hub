@@ -479,6 +479,9 @@ def is_subscription_expired():
     return days < 0
 
 
+_last_time_check_write = 0.0  # throttle zapisu last_successful_login_time (epoch s)
+
+
 def check_time_manipulation():
     """
     Sprawdź czy czas systemowy nie został cofnięty (ochrona przed manipulacją).
@@ -506,8 +509,22 @@ def check_time_manipulation():
             except (ValueError, TypeError):
                 pass  # Nieprawidłowy format — ignoruj, zapisz nowy
 
-        # Zapisz aktualny czas jako ostatni udany login
-        set_config('last_successful_login_time', now.isoformat())
+        # FIX 2026-05-30: NIE pisz do DB na KAZDYM zadaniu. Wczesniej ten
+        # set_config lecial per-request (middleware check_license_middleware
+        # -> check_time_manipulation), wiec gdy cokolwiek w tle trzymalo
+        # write-lock SQLite, zapis czekal busy_timeout=30s i ZAMRAZAL KAZDA
+        # chroniona strone na 30s (/auth/login byl szybki bo pomija middleware).
+        # Throttle: zapis max raz na 10 min — dla detekcji cofniecia zegara
+        # (grace 2h) w zupelnosci wystarcza. Odczyt powyzej jest tani (WAL
+        # nie blokuje czytania), wiec render strony juz nie dotyka write-locka.
+        import time as _t
+        global _last_time_check_write
+        if _t.time() - _last_time_check_write > 600:
+            try:
+                set_config('last_successful_login_time', now.isoformat())
+                _last_time_check_write = _t.time()
+            except Exception:
+                pass
         return True, 'OK'
 
     except Exception:
