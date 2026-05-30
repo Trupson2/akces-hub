@@ -59,8 +59,14 @@ konta Cloudflare.
    - **Subdomain:** `maciek`
    - **Domain:** `akceshub.com`
    - **Service Type:** `HTTP`
-   - **URL:** `localhost:5000`
+   - **URL:** `localhost:5000` (albo `localhost:<port>` jeśli używasz `--port`
+     — np. na zajętej maszynie, gdzie 5000 jest wzięte, dajesz `localhost:5001`)
    - Zapisz.
+
+> **Zajęta maszyna (np. Pi z już działającym Akces Hub na 5000)?** Użyj
+> `--port 5001` (lub innego wolnego) w instalatorze. Skrypt tworzy **własną,
+> osobno nazwaną** usługę tunelu `akces-<klient>-tunnel.service` i **nie rusza**
+> istniejącego `cloudflared`/`ngrok`. Wtedy w Public Hostname dasz `localhost:5001`.
 
 To wszystko po stronie Cloudflare. Rekord DNS `maciek.akceshub.com` powstaje
 automatycznie i wskazuje na tunel.

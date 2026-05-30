@@ -8792,14 +8792,21 @@ if __name__ == '__main__':
     # - desktop ZIP install (Windows klient) -> 127.0.0.1 (chroni przed wyscigiem
     #   first_setup z LAN-u, plus nikt z biura nie podsluchnie sesji)
     _bind_host = '0.0.0.0' if _is_proxied_deployment else '127.0.0.1'
-    log(f"Serwer startuje: http://{_bind_host}:5000")
+    # Port konfigurowalny przez env (AKCES_PORT) — pozwala uruchomic kilka
+    # instancji na jednej maszynie (np. dodatkowy klient obok istniejacego
+    # Akces Hub na 5000). Domyslnie 5000 — zero zmian dla istniejacych wdrozen.
+    try:
+        _port = int(os.environ.get('AKCES_PORT', '5000'))
+    except (TypeError, ValueError):
+        _port = 5000
+    log(f"Serwer startuje: http://{_bind_host}:{_port}")
     print("="*60)
 
     # Produkcyjny WSGI server (waitress) — zamiast Flask dev server (nie padał)
     try:
         from waitress import serve
         log(f"Uzywam waitress (produkcyjny WSGI, bind={_bind_host})")
-        serve(app, host=_bind_host, port=5000, threads=16, channel_timeout=600)
+        serve(app, host=_bind_host, port=_port, threads=16, channel_timeout=600)
     except ImportError:
         # PHASE 2: fallback zostaje (lepiej dzialac na dev niz nie dzialac
         # u klienta), ale GLOSNO — produkcja na Flask dev serverze nie ma
@@ -8810,7 +8817,7 @@ if __name__ == '__main__':
         log("[CRITICAL] To NIE jest setup produkcyjny. Wykonaj:  pip install waitress")
         log("[CRITICAL] potem zrestartuj usluge. (requirements.txt zawiera waitress)")
         log(_banner)
-        app.run(host=_bind_host, port=5000, debug=False, threaded=True)
+        app.run(host=_bind_host, port=_port, debug=False, threaded=True)
 
 # ============================================================
 # SZTUKI - per-unit tracking
