@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- fix(stream): TWARDY timeout 35s na Gemini opis+GPSR w mass-create. U Macka Gemini generuje >54s (wolne/wisi) -> stream timeout mimo paddingu. Po 35s -> fallback opis (szablon), wystawianie LECI DALEJ. Klient poprawi opis pozniej. Odblokowuje wystawianie gdy Gemini wolne.
 - fix(stream): "Utracono polaczenie" przy wystawianiu na localhost (Macek). Waitress BUFORUJE male SSE keepalive pingi (30B) -> nie dochodzily -> EventSource timeout podczas generowania opisu Gemini (35s). U Adriana dzialalo bo Cloudflare flushuje. Fix: padding 2KB do kazdego ping + retry:15000 -> wymusza waitress flush. Dziala na localhost i przez tunnel.
 - fix(500): publish-all + publish-single (wystaw wszystkie/pojedynczy szkic) rzucaly 500. draft.get('kategoria') na sqlite3.Row - Row NIE MA .get() + oferty nie ma kolumny kategoria. Maciek trafil przez publish-all. Adrian nie bo wystawial przez mass-create (ma dict(p)).
 - fix(deps): requirements.txt mial ZLY pakiet google-generativeai (stary) zamiast google-genai (nowy, ktory kod faktycznie importuje przez 'from google import genai'). Swieza instalacja (Macek) dostawala stary -> genai.Client() nie istnieje -> Gemini fail. Zmienione na google-genai>=1.0.0.

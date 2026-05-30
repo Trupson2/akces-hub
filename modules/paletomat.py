@@ -4223,30 +4223,51 @@ def generator_mass_create_from_paleta_stream():
                     )
                     f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
 
-                    # Keepalive podczas oczekiwania na Gemini
-                    # v1.0.117: ping Z PADDINGIEM (2KB) - wymusza waitress flush.
-                    # Bez tego u Macka (localhost waitress) ping nie dochodzil ->
-                    # "Utracono polaczenie" podczas generowania opisu (35s).
+                    # Keepalive podczas oczekiwania na Gemini + TIMEOUT.
+                    # v1.0.118: TWARDY TIMEOUT 35s na Gemini. U Macka opis+GPSR
+                    # generuje sie >54s (Gemini wolne/wisi - region/API key/siec)
+                    # -> stream timeout mimo paddingu. Po 35s przerywamy czekanie,
+                    # uzywamy fallback opisu (szablon). Wystawianie LECI DALEJ,
+                    # stream nie wisi. Klient moze poprawic opis pozniej na Allegro.
                     _futures = {f_opis: 'opis', f_gpsr: 'gpsr'}
                     _done_count = 0
+                    _GEMINI_TIMEOUT = 35
+                    _wait_start = time.time()
+                    _timed_out = False
                     while _done_count < 2:
                         _newly_done = [f for f in _futures if f.done() and _futures[f] != 'got']
                         for f in _newly_done:
                             _done_count += 1
                             _futures[f] = 'got'
                         if _done_count < 2:
+                            if time.time() - _wait_start > _GEMINI_TIMEOUT:
+                                _timed_out = True
+                                yield "data: " + json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined>timer</span> Gemini wolne (>35s) — używam szybkiego opisu, wystawiam dalej', 'color': '#f59e0b'}) + "\n\n:" + (" " * 2048) + "\n\n"
+                                break
                             yield "data: " + json.dumps({'type': 'ping'}) + "\n\n:" + (" " * 2048) + "\n\n"
                             time.sleep(2)
 
-                    try:
-                        _opis_result = f_opis.result()
-                        opis_html = _opis_result[0] if isinstance(_opis_result, tuple) else _opis_result
-                    except Exception as e:
-                        print(f"   [CANCEL] Opis error: {e}")
-                    try:
-                        gpsr = f_gpsr.result()
-                    except Exception as e:
-                        print(f"   [CANCEL] GPSR error: {e}")
+                    # v1.0.118: po timeout - fallback opis (NIE czekaj na wiszacy Gemini)
+                    if _timed_out:
+                        try:
+                            from .utils import generuj_opis_fallback
+                            opis_html = generuj_opis_fallback(nazwa, kategoria)
+                        except Exception:
+                            opis_html = f"<h2>{nazwa}</h2><p>Produkt dostępny w sprzedaży.</p>"
+                        if not gpsr:
+                            gpsr = ''
+                        # Nie wchodz w result() blok ponizej (future moze wisiec)
+                        _opis_result = None
+                    else:
+                        try:
+                            _opis_result = f_opis.result(timeout=2)
+                            opis_html = _opis_result[0] if isinstance(_opis_result, tuple) else _opis_result
+                        except Exception as e:
+                            print(f"   [CANCEL] Opis error: {e}")
+                        try:
+                            gpsr = f_gpsr.result(timeout=2)
+                        except Exception as e:
+                            print(f"   [CANCEL] GPSR error: {e}")
 
                 if gpsr:
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>shield</span> GPSR: {len(gpsr)} znaków', 'color': '#22c55e'}) + "\n\n"
