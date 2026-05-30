@@ -1746,6 +1746,29 @@ def clean_html_for_allegro(html):
     for tag in ['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li']:
         html = re.sub(rf'<{tag}\s+[^>]*>', f'<{tag}>', html, flags=re.IGNORECASE)
 
+    # Spłaszcz ZAGNIEŻDŻONE <p> — Allegro odrzuca <p> wewnątrz <p>
+    # (błąd API: 'description...content: Invalid tag: "p", allowed tags: {b}').
+    # Pojawia się np. gdy fallback-opis (Gemini timeout) zwraca <p><p>...</p></p>.
+    # Trzymamy tylko najbardziej zewnętrzne otwarcie/zamknięcie akapitu.
+    _flat = []
+    _depth = 0
+    for _tok in re.split(r'(?i)(</?p>)', html):
+        _low = _tok.lower()
+        if _low == '<p>':
+            if _depth == 0:
+                _flat.append('<p>')
+            _depth += 1
+        elif _low == '</p>':
+            if _depth == 1:
+                _flat.append('</p>')
+            if _depth > 0:
+                _depth -= 1
+        else:
+            _flat.append(_tok)
+    if _depth > 0:
+        _flat.append('</p>')
+    html = ''.join(_flat)
+
     # Usuń puste paragrafy
     html = re.sub(r'<p>\s*</p>', '', html)
 
