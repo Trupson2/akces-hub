@@ -226,6 +226,21 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', _secret_key)
 app.config['DATABASE'] = os.environ.get('DATABASE_PATH', 'akces_hub.db')
 app.config['VERSION'] = VERSION
 
+
+@app.before_request
+def _sync_brand_name():
+    """Synchronizuj app.config['BRAND_NAME'] z configu DB (live, cache 60s).
+    BUG: ~24 strony (analityka, analytics, magazynier, palety, wysylki, sprzedaze
+    itd.) robily app.config.get('BRAND_NAME', 'Akces Hub'), ale BRAND_NAME NIGDY
+    nie bylo ustawiane -> wszedzie 'Akces Hub' (de facto HARDCODE, nie marka
+    instancji). Teraz biora marke z brand_name (np. MIXOLAND / marka Maćka).
+    Sidebar juz byl OK (inject_branding czyta config wprost)."""
+    try:
+        from modules.database import get_config_cached
+        app.config['BRAND_NAME'] = get_config_cached('brand_name', 'AKCES HUB') or 'AKCES HUB'
+    except Exception:
+        pass
+
 # ── Auto-generate CHANGELOG.md from git log ──
 def _generate_changelog():
     """Generate CHANGELOG.md from recent git commits, grouped by date."""
