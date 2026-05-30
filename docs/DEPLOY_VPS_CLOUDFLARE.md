@@ -67,18 +67,32 @@ automatycznie i wskazuje na tunel.
 
 ---
 
-## 2. VPS — jedna komenda instalacyjna
+## 2. Maszyna (VPS lub własny serwer/Pi) — jedna komenda instalacyjna
 
-Zaloguj się na VPS jako użytkownik z `sudo` i uruchom instalator z repo.
+Zaloguj się jako użytkownik z `sudo` i uruchom instalator z repo.
 Podmień `<TOKEN_TUNELU>` na token z kroku 1.
 
+**Repo publiczne:**
 ```bash
-# pobierz instalator (albo sklonuj repo i odpal deploy/setup_vps_cloudflare.sh)
-curl -fsSL https://raw.githubusercontent.com/Trupson2/akces-hub/main/deploy/setup_vps_cloudflare.sh -o setup_vps_cloudflare.sh
-sudo bash setup_vps_cloudflare.sh \
+curl -fsSL https://raw.githubusercontent.com/Trupson2/akces-hub/main/deploy/setup_vps_cloudflare.sh -o setup.sh
+sudo bash setup.sh \
   --client maciek \
   --domain maciek.akceshub.com \
   --tunnel-token "<TOKEN_TUNELU>"
+```
+
+**Repo prywatne** — potrzebny token GitHub (PAT, uprawnienie *Contents: Read*).
+Skrypt leży na branchu `claude/access-hub-status-2DOEu`, a aplikacja klonuje
+się z `main`:
+```bash
+GH="<GITHUB_TOKEN>"
+curl -fsSL -H "Authorization: token $GH" \
+  "https://raw.githubusercontent.com/Trupson2/akces-hub/claude/access-hub-status-2DOEu/deploy/setup_vps_cloudflare.sh" -o setup.sh
+sudo bash setup.sh \
+  --client maciek \
+  --domain maciek.akceshub.com \
+  --tunnel-token "<TOKEN_TUNELU>" \
+  --gh-token "$GH"
 ```
 
 Opcjonalne flagi:
