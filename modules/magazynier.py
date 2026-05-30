@@ -4535,6 +4535,17 @@ def paleta_detail_by_id(paleta_id):
         and (not p['nazwa'] or (p['nazwa'] or '').startswith('Produkt '))
     )
 
+    # Policz produkty z ASIN bez uzytecznego zdjecia (puste zdjecie_url albo zlamany
+    # /P/ URL ktory zwraca pusty 43B GIF) — dla przycisku "Pobierz zdjecia".
+    try:
+        brak_zdjec_cnt = sum(
+            1 for p in products
+            if (p['asin'] or '').strip()
+            and (not (p['zdjecie_url'] or '').strip() or 'images/P/' in (p['zdjecie_url'] or ''))
+        )
+    except Exception:
+        brak_zdjec_cnt = 0
+
     # Przyciski akcji na palecie
     html += '<div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap">'
     html += f'<a href="/palety/{paleta_id}/mass-edit" class="btn" style="background:var(--purple);flex:1"><span class=material-symbols-outlined>shopping_cart</span> Wystaw bezpośrednio</a>'
@@ -4542,6 +4553,8 @@ def paleta_detail_by_id(paleta_id):
     html += f'<button onclick="autoWycenaPaleta({paleta_id})" class="btn" style="background:#f59e0b;flex:1"><span class=material-symbols-outlined>paid</span> Auto-wycena</button>'
     if placeholder_cnt > 0:
         html += f'<button onclick="poprawNazwyPaleta({paleta_id})" class="btn" style="background:#8b5cf6;flex:1"><span class=material-symbols-outlined>auto_fix_high</span> Popraw nazwy ({placeholder_cnt})</button>'
+    if brak_zdjec_cnt > 0:
+        html += f'<button onclick="pobierzZdjeciaPaleta({paleta_id})" class="btn" style="background:#3b82f6;flex:1"><span class=material-symbols-outlined>image</span> Pobierz zdjęcia ({brak_zdjec_cnt})</button>'
     html += '</div>'
     
     # Script dla Auto-wyceny (streamowane)
@@ -4675,6 +4688,67 @@ def paleta_detail_by_id(paleta_id):
             }
         } catch (e) {
             progressDiv.innerHTML += '<br><b style="color:#ef4444"><span class=material-symbols-outlined>cancel</span> Blad: ' + e.message + '</b>';
+            btn.disabled = false;
+            btn.innerHTML = orgHtml;
+        }
+    }
+
+    async function pobierzZdjeciaPaleta(paletaId) {
+        const btn = event.target.closest('button');
+        const orgHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '⟳ Pobieram...';
+        let pd = document.getElementById('scrape-img-progress');
+        if (!pd) {
+            pd = document.createElement('div');
+            pd.id = 'scrape-img-progress';
+            pd.style.cssText = 'background:#0f1830;border:1px solid #3b82f6;border-radius:8px;padding:12px;margin:10px 0;font-size:13px;max-height:300px;overflow-y:auto';
+            btn.parentNode.after(pd);
+        }
+        pd.style.display = 'block';
+        pd.innerHTML = '<b><span class=material-symbols-outlined>image</span> Pobieram zdjecia z Amazona (jak przy wystawianiu)...</b><br>';
+        try {
+            const resp = await fetch('/paletomat/api/scrape-zdjecia-stream/paleta/' + paletaId, {method: 'POST'});
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let stats = {ok:0, skipped:0, errors:0, total:0};
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+                const lines = buffer.split('\\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    try {
+                        const ev = JSON.parse(line.slice(6));
+                        if (ev.type === 'progress') {
+                            const pct = ev.total > 0 ? Math.round(ev.current / ev.total * 100) : 0;
+                            btn.innerHTML = '⟳ ' + pct + '% (' + ev.current + '/' + ev.total + ')';
+                            let color = '#22c55e', label = 'pobrano';
+                            if (ev.source === 'amazon_blocked') { color = '#ef4444'; label = 'Amazon zablokowal (CAPTCHA?)'; }
+                            else if (ev.source === 'invalid_asin') { color = '#f59e0b'; label = 'zly format ASIN'; }
+                            else if (ev.source === 'already') { color = '#64748b'; label = 'juz ma zdjecie'; }
+                            else if (ev.source === 'cdn') { color = '#3b82f6'; label = 'URL CDN'; }
+                            else if (ev.source === 'error') { color = '#ef4444'; label = 'blad: ' + (ev.error || ''); }
+                            pd.innerHTML += '<span style="color:' + color + '">• ' + ev.asin + ' → ' + label + '</span><br>';
+                            pd.scrollTop = pd.scrollHeight;
+                        } else if (ev.type === 'done') {
+                            stats = ev;
+                        }
+                    } catch(e) {}
+                }
+            }
+            pd.innerHTML += '<br><b style="color:#10b981"><span class=material-symbols-outlined>check_circle</span> Gotowe! Pobrano: ' + (stats.ok||0) + ', pominieto: ' + (stats.skipped||0) + ', bledy: ' + (stats.errors||0) + '</b>';
+            if ((stats.ok||0) > 0) {
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = orgHtml;
+            }
+        } catch (e) {
+            pd.innerHTML += '<br><b style="color:#ef4444">Blad: ' + e.message + '</b>';
             btn.disabled = false;
             btn.innerHTML = orgHtml;
         }

@@ -2694,6 +2694,84 @@ def rescrape_all_fallback():
     return redirect(request.referrer or '/paletomat')
 
 
+@paletomat_bp.route('/api/scrape-zdjecia-stream/paleta/<int:paleta_id>', methods=['POST'])
+def api_scrape_zdjecia_paleta_stream(paleta_id):
+    """Streamuje pobieranie zdjec z Amazona dla produktow palety (ASIN, bez zdjecia).
+
+    Uzywa _ensure_local_images() — DOKLADNIE ten sam mechanizm co wystawianie:
+    cache scraped -> CDN -> scrape /dp/{ASIN}, pobiera do static/downloads/{ASIN}/.
+    Resolver wyswietlania (_resolve_product_image) szuka tam image_1.jpg, wiec po
+    pobraniu + reload zdjecia pokazuja sie same. Po kazdym produkcie event SSE.
+    """
+    from flask import Response
+
+    def generate():
+        conn = get_db()
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        rows = conn.execute(
+            "SELECT id, asin, zdjecie_url FROM produkty "
+            "WHERE paleta_id = ? AND asin IS NOT NULL AND asin != ''",
+            (paleta_id,)
+        ).fetchall()
+        total = len(rows)
+        stats = {'type': 'done', 'total': total, 'ok': 0, 'skipped': 0, 'errors': 0}
+        processed = 0
+        for r in rows:
+            processed += 1
+            asin = (r['asin'] or '').strip().upper()
+            ev = {'type': 'progress', 'current': processed, 'total': total, 'asin': asin}
+
+            # Walidacja ASIN-a Amazon (B0 + 8-10 alfanum)
+            if not re.match(r'^B0[A-Z0-9]{8,10}$', asin):
+                stats['skipped'] += 1
+                ev['source'] = 'invalid_asin'
+                yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+                continue
+
+            local_img = os.path.join(base_dir, 'static', 'downloads', asin, 'image_1.jpg')
+            # Juz ma lokalne zdjecie -> tylko upewnij sie ze zdjecie_url na nie wskazuje
+            if os.path.exists(local_img) and os.path.getsize(local_img) > 1000:
+                try:
+                    conn.execute(
+                        "UPDATE produkty SET zdjecie_url = ? WHERE id = ? AND "
+                        "(zdjecie_url IS NULL OR zdjecie_url = '' OR zdjecie_url LIKE '%images/P/%')",
+                        (f'/static/downloads/{asin}/image_1.jpg', r['id'])
+                    )
+                    conn.commit()
+                except Exception:
+                    pass
+                stats['skipped'] += 1
+                ev['source'] = 'already'
+                yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+                continue
+
+            try:
+                imgs, _logs = _ensure_local_images([], asin, (r['zdjecie_url'] or ''))
+                if os.path.exists(local_img) and os.path.getsize(local_img) > 1000:
+                    conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?',
+                                 (f'/static/downloads/{asin}/image_1.jpg', r['id']))
+                    conn.commit()
+                    stats['ok'] += 1
+                    ev['source'] = 'scraped'
+                elif imgs and isinstance(imgs[0], str) and imgs[0].startswith('http'):
+                    conn.execute('UPDATE produkty SET zdjecie_url = ? WHERE id = ?', (imgs[0], r['id']))
+                    conn.commit()
+                    stats['ok'] += 1
+                    ev['source'] = 'cdn'
+                else:
+                    stats['errors'] += 1
+                    ev['source'] = 'amazon_blocked'
+            except Exception as e:
+                stats['errors'] += 1
+                ev['source'] = 'error'
+                ev['error'] = str(e)[:60]
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+
+        yield f"data: {json.dumps(stats, ensure_ascii=False)}\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
+
+
 @paletomat_bp.route('/api/rescrape-names-stream/paleta/<int:paleta_id>', methods=['POST'])
 def api_rescrape_names_paleta_stream(paleta_id):
     """Streamuje proces podmiany placeholder nazw 'Produkt B0...' na realne nazwy z Amazon.
