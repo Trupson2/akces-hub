@@ -517,7 +517,7 @@ def block_unauthenticated_external():
     # (browser pobiera je przed zalogowaniem; redirect na login psuje rejestracje SW)
     safe_paths = ('/auth', '/static', '/favicon', '/api/system-stats', '/api/csrf-token', '/launcher',
                   '/license', '/setup', '/eula', '/onboarding', '/subscription-expired', '/launcher',
-                  '/api/v1/', '/manifest.json', '/sw.js')
+                  '/api/v1/', '/api/health', '/manifest.json', '/sw.js')
     if any(request.path.startswith(p) for p in safe_paths):
         return
 
