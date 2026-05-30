@@ -3642,7 +3642,14 @@ def generator_mass_create_from_paleta_stream():
     def generate():
         # Wewnątrz funkcji już NIE wywołujemy request.args.get
         # Korzystamy ze zmiennej 'ids_str' pobranej wyżej
-        yield ": ping\n\n"  # Potwierdza że stream działa (Waitress flush)
+        # v1.0.117 FIX: padding 2KB + retry. Waitress (localhost u Macka)
+        # BUFORUJE male SSE eventy - keepalive ping 30B nie flushowal sie ->
+        # przegladarka nie dostawala -> "Utracono polaczenie". Cloudflare
+        # (u Adriana) flushuje wiec dzialalo. 2KB komentarz wymusza waitress
+        # flush bufora od razu. retry: 15000 = EventSource czeka 15s przed
+        # reconnect (nie zrywa za szybko).
+        yield "retry: 15000\n\n"
+        yield ":" + (" " * 2048) + "\n\n"  # padding wymusza flush bufora waitress
 
         if not ids_str:
             yield "data: " + json.dumps({'type': 'error', 'title': 'System', 'error': 'Brak ID produktów'}) + "\n\n"
@@ -4094,7 +4101,7 @@ def generator_mass_create_from_paleta_stream():
                                 _failed_paths.append(src_path)
                                 yield "data: " + json.dumps({'type': 'log', 'message': f'   <span class=material-symbols-outlined>cancel</span> [{idx}] {result}', 'color': '#ef4444'}) + "\n\n"
                         except queue.Empty:
-                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n:" + (" " * 2048) + "\n\n"
 
                     yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>photo_camera</span> Uploadowano {len(zdjecia_urls)}/{len(_imgs_to_upload)} zdjęć', 'color': '#22c55e' if zdjecia_urls else '#ef4444'}) + "\n\n"
 
@@ -4111,7 +4118,7 @@ def generator_mass_create_from_paleta_stream():
                                     yield "data: " + json.dumps({'type': 'log', 'message': f'   <span class=material-symbols-outlined>cancel</span> [CDN {_ui}] Nie przeszło', 'color': '#ef4444'}) + "\n\n"
                             except:
                                 pass
-                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n:" + (" " * 2048) + "\n\n"
                         if zdjecia_urls:
                             yield "data: " + json.dumps({'type': 'log', 'message': f'<span class=material-symbols-outlined>check_circle</span> CDN fallback: {len(zdjecia_urls)} zdjęć', 'color': '#22c55e'}) + "\n\n"
                 
@@ -4202,7 +4209,7 @@ def generator_mass_create_from_paleta_stream():
                                 return val
                             raise val
                         except queue.Empty:
-                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n:" + (" " * 2048) + "\n\n"
 
                 # Generuj opis w tle z keepalive
                 opis_html = ''
@@ -4217,6 +4224,9 @@ def generator_mass_create_from_paleta_stream():
                     f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
 
                     # Keepalive podczas oczekiwania na Gemini
+                    # v1.0.117: ping Z PADDINGIEM (2KB) - wymusza waitress flush.
+                    # Bez tego u Macka (localhost waitress) ping nie dochodzil ->
+                    # "Utracono polaczenie" podczas generowania opisu (35s).
                     _futures = {f_opis: 'opis', f_gpsr: 'gpsr'}
                     _done_count = 0
                     while _done_count < 2:
@@ -4225,8 +4235,8 @@ def generator_mass_create_from_paleta_stream():
                             _done_count += 1
                             _futures[f] = 'got'
                         if _done_count < 2:
-                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
-                            time.sleep(3)
+                            yield "data: " + json.dumps({'type': 'ping'}) + "\n\n:" + (" " * 2048) + "\n\n"
+                            time.sleep(2)
 
                     try:
                         _opis_result = f_opis.result()
@@ -4277,7 +4287,7 @@ def generator_mass_create_from_paleta_stream():
                         result, error = _offer_q.get(timeout=3)
                         break
                     except queue.Empty:
-                        yield "data: " + json.dumps({'type': 'ping'}) + "\n\n"
+                        yield "data: " + json.dumps({'type': 'ping'}) + "\n\n:" + (" " * 2048) + "\n\n"
 
                 if error:
                     yield "data: " + json.dumps({'type': 'error', 'title': nazwa[:40], 'error': error[:80]}) + "\n\n"
@@ -4350,7 +4360,9 @@ def generator_mass_create_stream():
     import time
     
     def generate():
-        yield ": ping\n\n"  # Potwierdza że stream działa (Waitress flush)
+        # v1.0.117: padding 2KB + retry - waitress flush (localhost Macek)
+        yield "retry: 15000\n\n"
+        yield ":" + (" " * 2048) + "\n\n"
 
         # Pobierz klucz Gemini API
         gemini_key = get_config('gemini_api_key', '')
