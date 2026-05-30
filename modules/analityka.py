@@ -821,7 +821,9 @@ def analityka_porownanie_lat():
     """Porownanie sprzedazy wg roku — ktory rok 'sypal' + rozbicie miesieczne."""
     from modules.database import get_db
     conn = get_db()
-    _W = "status NOT IN ('anulowana','zwrot','anulowane','zwroty') AND (kupujacy IS NULL OR kupujacy != 'offline') AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''"
+    # BRUTTO: cala sprzedaz ZE zwrotami (zwrot to tez sprzedaz ktora poszla) —
+    # wykluczamy tylko anulowane (nigdy nie doszly do skutku) + offline.
+    _W = "status NOT IN ('anulowana','anulowane') AND (kupujacy IS NULL OR kupujacy != 'offline') AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''"
     try:
         lata = conn.execute(
             "SELECT strftime('%Y', data_sprzedazy) as rok, COUNT(*) as zam, "
@@ -850,7 +852,7 @@ def analityka_porownanie_lat():
     html = ('<div style="max-width:1000px;margin:0 auto">'
             '<h1 style="font-size:1.4rem;color:#8ff5ff;margin-bottom:6px;font-family:\'Space Grotesk\',sans-serif">'
             '<span class=material-symbols-outlined>calendar_month</span> Porownanie lat — kiedy sypalo</h1>'
-            '<p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">Sprzedaz wg roku (bez zwrotow/anulowanych/offline). Najlepszy rok podswietlony, slupki = miesiace.</p>'
+            '<p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">Sprzedaz BRUTTO wg roku (cala sprzedaz ze zwrotami, bez anulowanych/offline). Najlepszy rok podswietlony, slupki = miesiace.</p>'
             '<div style="display:flex;flex-direction:column;gap:14px">')
     for l in lata:
         rok = l['rok']; przychod = l['przychod'] or 0; zam = l['zam'] or 0
