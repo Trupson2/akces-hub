@@ -179,13 +179,15 @@ def ustawienia_kreator():
     # Modele Gemini — typ 'datalist': wybierasz Z LISTY albo wpisujesz DOWOLNE ID
     # (np. przyszly model) bez ruszania kodu. ID zweryfikowane z docs Google
     # (ai.google.dev, maj 2026), najnowsze na gorze. Nowy model = jedna linia tu.
+    # Kolejnosc: TANIE/zalecane na gorze, DROGIE oznaczone cena (zeby nikt przez
+    # przypadek nie wybral modelu za $9/M output i nie podniosl rachunku).
     _GEMINI_MODELS = [
-        ('gemini-3.5-flash', 'Gemini 3.5 Flash (najnowszy, ~Pro w cenie Flash)'),
-        ('gemini-3-flash', 'Gemini 3 Flash'),
-        ('gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite (najszybszy/najtanszy)'),
-        ('gemini-3.1-pro-preview', 'Gemini 3.1 Pro (preview, reasoning)'),
-        ('gemini-2.5-flash', 'Gemini 2.5 Flash (stabilny, domyslny)'),
-        ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite'),
+        ('gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite (najtanszy ~$0.25/$1.5, szybki - ZALECANY do opisow)'),
+        ('gemini-2.5-flash', 'Gemini 2.5 Flash (tani, stabilny - domyslny)'),
+        ('gemini-2.5-flash-lite', 'Gemini 2.5 Flash Lite (bardzo tani)'),
+        ('gemini-3-flash', 'Gemini 3 Flash (sredni koszt)'),
+        ('gemini-3.5-flash', 'Gemini 3.5 Flash (NAJMADRZEJSZY ale DROGI ~$1.5/$9 output!)'),
+        ('gemini-3.1-pro-preview', 'Gemini 3.1 Pro (reasoning, drogi)'),
         ('gemini-2.0-flash', 'Gemini 2.0 Flash (starszy)'),
     ]
 
