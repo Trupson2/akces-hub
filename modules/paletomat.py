@@ -3579,6 +3579,26 @@ def generator_mass_create_from_paleta():
     return render(html)
 
 
+def _blocking_with_ping(_fn, _box):
+    """Uruchamia _fn() w watku (daemon) i w tym czasie yielduje pingi keepalive
+    co ~2s (2KB padding wymusza flush waitress -> trzyma stream zywy przez
+    Cloudflare/tunnel, inaczej 30-60s ciszy = zerwane polaczenie). Wynik _fn
+    laduje do _box['r']. Gdy klient sie rozlaczy, watek dziala DALEJ -> ciezka
+    operacja (np. create_offer) konczy sie mimo to i oferta powstaje."""
+    import threading as _thr
+    def _run():
+        try:
+            _box['r'] = _fn()
+        except Exception as _e:
+            _box['err'] = _e
+    _t = _thr.Thread(target=_run, daemon=True)
+    _t.start()
+    while _t.is_alive():
+        _t.join(timeout=2.0)
+        if _t.is_alive():
+            yield ":" + (" " * 2048) + " keepalive\n\n"
+
+
 @paletomat_bp.route('/generator/mass-create-from-paleta-stream')
 def generator_mass_create_from_paleta_stream():
     """SSE stream dla masowego wystawiania produktów z magazynu"""
@@ -4577,13 +4597,17 @@ def generator_mass_create_stream():
                     except:
                         pass
 
-                # Generuj opis + GPSR RÓWNOLEGLE
-                from concurrent.futures import ThreadPoolExecutor
-                with ThreadPoolExecutor(max_workers=2) as executor:
-                    f_opis = executor.submit(generuj_opis_html_pro, nazwa, uploaded_urls if uploaded_urls else wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
-                    f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
-                    opis_html, _ = f_opis.result()
-                    gpsr = f_gpsr.result()
+                # Generuj opis + GPSR RÓWNOLEGLE — w wątku, z pingami keepalive
+                # (inaczej 30-50s ciszy SSE -> Cloudflare/przegladarka zrywa stream)
+                def _gen_opis_gpsr():
+                    from concurrent.futures import ThreadPoolExecutor
+                    with ThreadPoolExecutor(max_workers=2) as executor:
+                        f_opis = executor.submit(generuj_opis_html_pro, nazwa, uploaded_urls if uploaded_urls else wszystkie_zdjecia, kategoria, bullet_points, gemini_key=gemini_key, asin=asin)
+                        f_gpsr = executor.submit(generuj_gpsr_info, nazwa, kategoria, product_specs=product_specs)
+                        return (f_opis.result()[0], f_gpsr.result())
+                _opis_box = {}
+                yield from _blocking_with_ping(_gen_opis_gpsr, _opis_box)
+                opis_html, gpsr = _opis_box.get('r', ('', None))
 
                 # Cena
                 cena_amazon = p.get('cena_amazon') or 0
@@ -4593,21 +4617,26 @@ def generator_mass_create_stream():
                 else:
                     cena = 99.99
 
-                # WYSTAW NA ALLEGRO z uploadowanymi URL-ami
-                result, error = create_offer(
-                    nazwa=tytul_seo,
-                    opis=opis_html,
-                    cena=cena,
-                    zdjecia_urls=uploaded_urls if uploaded_urls else None,
-                    kategoria_id=kategoria_id,
-                    ilosc=ilosc,
-                    ean=ean,
-                    asin=asin,
-                    gpsr=gpsr,
-                    product_specs=product_specs,
-                    bullet_points=bullet_points,
-                    kod_magazynowy=_km
-                )
+                # WYSTAW NA ALLEGRO z uploadowanymi URL-ami — w wątku z keepalive.
+                # Jak przegladarka padnie, watek dokonczy -> oferta i tak powstaje.
+                def _do_create_offer():
+                    return create_offer(
+                        nazwa=tytul_seo,
+                        opis=opis_html,
+                        cena=cena,
+                        zdjecia_urls=uploaded_urls if uploaded_urls else None,
+                        kategoria_id=kategoria_id,
+                        ilosc=ilosc,
+                        ean=ean,
+                        asin=asin,
+                        gpsr=gpsr,
+                        product_specs=product_specs,
+                        bullet_points=bullet_points,
+                        kod_magazynowy=_km
+                    )
+                _offer_box = {}
+                yield from _blocking_with_ping(_do_create_offer, _offer_box)
+                result, error = _offer_box.get('r', (None, 'Przerwano (timeout/utrata polaczenia)'))
 
                 if error:
                     yield f"data: {json.dumps({'type': 'error', 'asin': asin, 'error': error[:80]})}\n\n"
