@@ -519,16 +519,23 @@ def is_configured():
 
 
 def is_authenticated():
+    # SZYBKIE, LOKALNE sprawdzenie — ZERO wywolan sieciowych. Wczesniej przy
+    # lokalnie wygaslym tokenie robilo synchroniczny refresh_access_token()
+    # (POST do Allegro), co przy dlawieniu/niedostepnym Allegro blokowalo RENDER
+    # strony nawet 30s — dashboard i /allegro wisialy, user nie mogl sie nawet
+    # przelogowac (deadlock UX). Realny refresh i tak robi allegro_request()
+    # przy FAKTYCZNYM wywolaniu API, wiec status na stronie nie potrzebuje sieci.
     config = get_allegro_config()
     if not config['access_token']:
         return False
-    if config['token_expires']:
-        try:
-            expires = datetime.fromisoformat(config['token_expires'])
-            if datetime.now() >= expires:
-                return refresh_access_token()
-        except:
-            pass
+    # Token oznaczony jako martwy (invalid_grant z refresh storm) -> Offline,
+    # pokaz "Polacz ponownie". Flaga czyszczona w callbacku OAuth po re-loginie.
+    try:
+        from .database import get_config_cached
+        if get_config_cached('allegro_token_invalid', '') == '1':
+            return False
+    except Exception:
+        pass
     return True
 
 
@@ -595,7 +602,9 @@ def refresh_access_token():
             }
 
             print(f"[TokenRefresh] POST {token_url} (client_id: {config['client_id'][:8]}...)")
-            response = requests.post(token_url, headers=headers, data=data, timeout=30)
+            # timeout 10s (nie 30): refresh nie moze wisiec pol minuty i blokowac
+            # watku. Przy dlawieniu Allegro lepiej szybki fail + cooldown.
+            response = requests.post(token_url, headers=headers, data=data, timeout=10)
             print(f"[TokenRefresh] Status: {response.status_code}")
 
             if response.status_code == 200:
