@@ -2,6 +2,7 @@
 
 ## 29.05.2026
 
+- fix(deps): requirements.txt mial ZLY pakiet google-generativeai (stary) zamiast google-genai (nowy, ktory kod faktycznie importuje przez 'from google import genai'). Swieza instalacja (Macek) dostawala stary -> genai.Client() nie istnieje -> Gemini fail. Zmienione na google-genai>=1.0.0.
 - fix(update): git fetch + reset --hard origin zamiast git pull. Caly dzien pull padal (divergent branches, merge conflicts CHANGELOG, local changes) i wymagal recznego SSH. reset --hard = deterministyczne, nigdy nie pada. Dane klienta untracked -> nietkniete.
 - feat(palety): "Nowa paleta" ma 3 drogi - "Utworz + skaner/ASIN" (scraper), "Utworz + wgraj Excel" (import z preselekcja palety), "Sama paleta" (lista). Import czyta ?paleta_id= i preselektuje.
 - feat(palety): "Nowa paleta" ma 2 przyciski - "Utworz + dodaj produkty" (-> scraper z preselekcja palety) i "Utworz (sama paleta)" (-> lista). Scraper czyta ?paleta_id= i preselektuje palete w dropdownie.
