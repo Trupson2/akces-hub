@@ -816,6 +816,69 @@ def analityka_dashboard():
 
 
 
+@analityka_bp.route('/analityka/porownanie-lat')
+def analityka_porownanie_lat():
+    """Porownanie sprzedazy wg roku — ktory rok 'sypal' + rozbicie miesieczne."""
+    from modules.database import get_db
+    conn = get_db()
+    _W = "status NOT IN ('anulowana','zwrot','anulowane','zwroty') AND (kupujacy IS NULL OR kupujacy != 'offline') AND data_sprzedazy IS NOT NULL AND data_sprzedazy != ''"
+    try:
+        lata = conn.execute(
+            "SELECT strftime('%Y', data_sprzedazy) as rok, COUNT(*) as zam, "
+            "COALESCE(SUM(cena*ilosc),0) as przychod FROM sprzedaze WHERE " + _W +
+            " GROUP BY rok HAVING rok IS NOT NULL AND rok != '' ORDER BY rok DESC"
+        ).fetchall()
+        msc_rows = conn.execute(
+            "SELECT strftime('%Y', data_sprzedazy) as rok, strftime('%m', data_sprzedazy) as msc, "
+            "COALESCE(SUM(cena*ilosc),0) as suma FROM sprzedaze WHERE " + _W + " GROUP BY rok, msc"
+        ).fetchall()
+    except Exception as e:
+        return render(f'<div style="padding:40px;color:#ef4444">Blad odczytu: {e}</div>', 'Porownanie lat')
+
+    if not lata:
+        return render('<div style="padding:60px;text-align:center;color:#64748b">Brak sprzedazy z datami do porownania.</div>'
+                      '<div style="text-align:center"><a href="/analityka" style="color:#64748b">&larr; Powrot</a></div>', 'Porownanie lat')
+
+    msc_map = {}
+    for r in msc_rows:
+        msc_map.setdefault(r['rok'], {})[r['msc']] = r['suma'] or 0
+
+    best_rok = max(lata, key=lambda x: x['przychod'] or 0)['rok']
+    max_przychod = max((l['przychod'] or 0 for l in lata), default=1) or 1
+    MIES = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paz','Lis','Gru']
+
+    html = ('<div style="max-width:1000px;margin:0 auto">'
+            '<h1 style="font-size:1.4rem;color:#8ff5ff;margin-bottom:6px;font-family:\'Space Grotesk\',sans-serif">'
+            '<span class=material-symbols-outlined>calendar_month</span> Porownanie lat — kiedy sypalo</h1>'
+            '<p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">Sprzedaz wg roku (bez zwrotow/anulowanych/offline). Najlepszy rok podswietlony, slupki = miesiace.</p>'
+            '<div style="display:flex;flex-direction:column;gap:14px">')
+    for l in lata:
+        rok = l['rok']; przychod = l['przychod'] or 0; zam = l['zam'] or 0
+        srednia = przychod / 12.0
+        is_best = (rok == best_rok)
+        border = '#beee00' if is_best else 'rgba(255,255,255,0.08)'
+        badge = (' <span style="font-size:0.65rem;color:#beee00;background:rgba(190,238,0,0.12);padding:2px 8px;border-radius:6px;vertical-align:middle">NAJLEPSZY</span>' if is_best else '')
+        msc_d = msc_map.get(rok, {})
+        max_msc = max((v for v in msc_d.values()), default=1) or 1
+        bars = ''
+        for mi in range(1, 13):
+            s = msc_d.get(f'{mi:02d}', 0)
+            h = int(s / max_msc * 100) if max_msc else 0
+            col = '#beee00' if (s == max_msc and s > 0) else '#8ff5ff'
+            bars += (f'<div title="{MIES[mi-1]}: {s:,.0f} zl" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center">'
+                     f'<div style="width:68%;height:{h}%;min-height:2px;background:{col};border-radius:2px 2px 0 0"></div>'
+                     f'<div style="font-size:0.5rem;color:#64748b;margin-top:2px">{MIES[mi-1]}</div></div>')
+        html += (f'<div style="background:#12121a;border:2px solid {border};border-radius:14px;padding:18px">'
+                 f'<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px">'
+                 f'<div style="font-size:1.8rem;font-weight:800;color:#f9f5f8;font-family:\'Space Grotesk\',sans-serif">{rok}{badge}</div>'
+                 f'<div style="text-align:right"><div style="font-size:1.4rem;font-weight:700;color:#beee00">{przychod:,.0f} zl</div>'
+                 f'<div style="font-size:0.7rem;color:#64748b">{zam} zamowien &middot; ~{srednia:,.0f} zl/msc</div></div></div>'
+                 f'<div style="display:flex;align-items:flex-end;gap:3px;height:70px;margin-top:14px">{bars}</div></div>')
+    html += ('</div><div style="text-align:center;margin-top:24px">'
+             '<a href="/analityka" style="color:#64748b;text-decoration:none">&larr; Powrot do analityki</a></div></div>')
+    return render(html, 'Porownanie lat')
+
+
 @analityka_bp.route('/analityka/palety')
 def analityka_palety():
     """Bilans palet - koszt vs przychód, ROI"""
