@@ -61,6 +61,13 @@ def _resolve_product_image(p, size='sm'):
     """
     img = p.get('zdjecie_url') or '' if hasattr(p, 'get') else (p['zdjecie_url'] if 'zdjecie_url' in p.keys() else '')
 
+    # /P/{ASIN} URL Amazona zwraca PUSTY 43B GIF dla wiekszosci B0-ASIN-ow —
+    # traktuj jak BRAK, zeby fallback ponizej znalazl lokalny plik (pobrany
+    # scraperem przez "Pobierz zdjecia" / wystawianie). Bez tego zdjecie istnieje
+    # na dysku ale jest zaslonięte pustym /P/ URL-em.
+    if img and 'media-amazon.com/images/P/' in img:
+        img = ''
+
     # Waliduj lokalne ścieżki
     if img and img.startswith('/static/downloads/'):
         if not os.path.exists(img.lstrip('/')):
@@ -4741,8 +4748,8 @@ def paleta_detail_by_id(paleta_id):
                 }
             }
             pd.innerHTML += '<br><b style="color:#10b981"><span class=material-symbols-outlined>check_circle</span> Gotowe! Pobrano: ' + (stats.ok||0) + ', pominieto: ' + (stats.skipped||0) + ', bledy: ' + (stats.errors||0) + '</b>';
-            if ((stats.ok||0) > 0) {
-                setTimeout(() => location.reload(), 2000);
+            if ((stats.ok||0) > 0 || (stats.skipped||0) > 0) {
+                setTimeout(() => location.reload(), 1500);
             } else {
                 btn.disabled = false;
                 btn.innerHTML = orgHtml;
