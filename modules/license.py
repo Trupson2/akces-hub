@@ -520,9 +520,24 @@ def check_time_manipulation():
         import time as _t
         global _last_time_check_write
         if _t.time() - _last_time_check_write > 600:
+            _last_time_check_write = _t.time()  # throttle NIEZALEZNIE od wyniku zapisu
+            # Zapis NON-BLOCKING: dedykowane polaczenie z busy_timeout=2s (nie 30s),
+            # zeby ten timestamp NIGDY nie zamrozil requestu na 30s gdy cos w tle
+            # trzyma write-lock. To tylko znacznik anty-cofania zegara — jak sie nie
+            # uda (lock), trudno, sprobujemy za 10 min. Eliminuje dorywcze "blipy".
             try:
-                set_config('last_successful_login_time', now.isoformat())
-                _last_time_check_write = _t.time()
+                import sqlite3 as _sq
+                from .database import DATABASE as _DBPATH
+                _c = _sq.connect(_DBPATH, timeout=2)
+                try:
+                    _c.execute(
+                        "INSERT OR REPLACE INTO config (klucz, wartosc, data_aktualizacji) "
+                        "VALUES (?, ?, CURRENT_TIMESTAMP)",
+                        ('last_successful_login_time', now.isoformat())
+                    )
+                    _c.commit()
+                finally:
+                    _c.close()
             except Exception:
                 pass
         return True, 'OK'
