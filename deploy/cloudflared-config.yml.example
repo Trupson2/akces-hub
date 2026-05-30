@@ -1,0 +1,20 @@
+# Cloudflare Tunnel — wariant zarządzany lokalnie (plik config.yml)
+# Alternatywa dla tunelu tokenowego z panelu (patrz docs/DEPLOY_VPS_CLOUDFLARE.md §6).
+#
+# Setup:
+#   cloudflared tunnel login                      # autoryzacja w przeglądarce -> cert.pem
+#   cloudflared tunnel create akces-maciek        # tworzy tunel + <UUID>.json
+#   cloudflared tunnel route dns akces-maciek maciek.akceshub.com
+#   sudo cp config.yml /etc/cloudflared/config.yml
+#   sudo cloudflared service install
+#
+# Plik docelowo: /etc/cloudflared/config.yml
+
+tunnel: <UUID-TUNELU>
+credentials-file: /etc/cloudflared/<UUID-TUNELU>.json
+
+ingress:
+  - hostname: maciek.akceshub.com
+    service: http://localhost:5000
+  # wszystko inne -> 404
+  - service: http_status:404
