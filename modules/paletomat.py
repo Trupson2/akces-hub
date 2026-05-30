@@ -4264,6 +4264,7 @@ def generator_mass_create_from_paleta_stream():
                                 _timed_out = True
                                 yield "data: " + json.dumps({'type': 'log', 'message': '<span class=material-symbols-outlined>timer</span> Gemini wolne (>35s) — używam szybkiego opisu, wystawiam dalej', 'color': '#f59e0b'}) + "\n\n:" + (" " * 2048) + "\n\n"
                                 break
+                            print(f"[KEEPALIVE] gemini ping +{int(time.time()-_wait_start)}s", flush=True)
                             yield "data: " + json.dumps({'type': 'ping'}) + "\n\n:" + (" " * 2048) + "\n\n"
                             time.sleep(2)
 
