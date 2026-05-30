@@ -2924,7 +2924,12 @@ def statystyki():
     # === ROZLICZENIE MIESIĘCZNE (analogicznie do rocznego) ===
     # Dla biezacego miesiaca - osobne PIT/VAT bo system pokazywal tylko roczne,
     # a uzytkownik faktycznie placi VAT i PIT miesiecznie i roznice byly nieprzejrzyste
-    biezacy_m = datetime.now().month
+    # Wybor miesiaca do rozliczenia (klik w przyciski Sty-Gru); domyslnie biezacy.
+    try:
+        _selm = int(request.args.get('miesiac', datetime.now().month))
+        biezacy_m = _selm if 1 <= _selm <= 12 else datetime.now().month
+    except (ValueError, TypeError):
+        biezacy_m = datetime.now().month
     biezacy_m_str = f"{current_year}-{biezacy_m:02d}"
     _przychod_msc_row = conn.execute('''
         SELECT COALESCE(SUM(cena * ilosc), 0) as suma
@@ -3069,6 +3074,7 @@ def statystyki():
         zysk_na_reke_kolor=zysk_na_reke_kolor,
         # Rozliczenie miesieczne (analogiczne do rocznego)
         miesiac_nazwa_tax=nazwa_miesiaca_pl,
+        sel_miesiac=biezacy_m,
         przychod_total_msc=przychod_total_msc,
         przychod_netto_msc_tax=przychod_netto_msc_tax,
         koszty_total_msc=koszty_total_msc,

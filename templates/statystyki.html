@@ -169,6 +169,14 @@
     <span class="st-section-label">Rozliczenie podatkowe {{ miesiac_nazwa_tax }} {{ current_year }}</span>
 </div>
 
+<!-- Selektor miesiaca — klik pokazuje rozliczenie podatkowe danego miesiaca -->
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px">
+    {% set _miesiace_sel = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paz','Lis','Gru'] %}
+    {% for _m in range(1, 13) %}
+    <a href="?miesiac={{ _m }}" style="padding:6px 13px;border-radius:8px;font-size:0.78rem;font-weight:700;text-decoration:none;font-family:'Space Grotesk',sans-serif;transition:all 0.15s;{% if _m == sel_miesiac %}background:linear-gradient(135deg,#8ff5ff,#ff6b9b);color:#06060f;box-shadow:0 0 12px rgba(143,245,255,0.3){% else %}background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.08){% endif %}">{{ _miesiace_sel[_m-1] }}</a>
+    {% endfor %}
+</div>
+
 <div class="st-tax-panel">
     <div class="st-tax-grid">
         <div class="st-tax-item">
