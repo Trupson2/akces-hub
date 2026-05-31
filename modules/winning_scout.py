@@ -1700,6 +1700,14 @@ def run_scout_scan() -> dict:
         # ── 6. Zapisz do DB ──────────────────────────────────────────────
         saved_count = 0
 
+        # Tlumaczenia rejected (HTTP) przygotuj TERAZ — PRZED zapisami. Dawniej
+        # _translate_to_pl bylo wolane w petli INSERT rejected, czyli juz po
+        # INSERT-ach kept (otwarta transakcja) -> HTTP do Google Translate trzymal
+        # write-lock WAL az do commit() -> 'database is locked' u innych watkow.
+        for cand in rejected[:10]:
+            if not cand.get('product_name_pl'):
+                cand['product_name_pl'] = _translate_to_pl(cand.get('name', ''))
+
         # Zapisz kept
         for cand in kept:
             try:
@@ -1762,7 +1770,7 @@ def run_scout_scan() -> dict:
                 """, (
                     batch_id,
                     cand.get('name', '')[:300],
-                    cand.get('product_name_pl', _translate_to_pl(cand.get('name', '')))[:300],
+                    cand.get('product_name_pl', '')[:300],
                     cand.get('category', '')[:100],
                     cand.get('source', 'unknown')[:50],
                     cand.get('source_url', '')[:500],
@@ -1772,7 +1780,14 @@ def run_scout_scan() -> dict:
             except Exception as e:
                 _log(f"[scout] DB insert rejected error: {e}")
 
-        conn.commit()
+        # rollback w except: gdyby commit() padl (np. baza chwilowo zablokowana),
+        # bez tego pooled connection zostalby z wiszaca transakcja (write-lock WAL)
+        # az do restartu procesu -> trwale 'database is locked' u innych watkow.
+        try:
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            _log(f"[scout] DB commit blad (rollback): {e}")
 
         duration = round(time.time() - start_time, 1)
         set_config('scout_last_run', datetime.now().isoformat())

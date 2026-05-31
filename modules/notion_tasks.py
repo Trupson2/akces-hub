@@ -25,8 +25,9 @@ def _get_notion_config():
     db_id = os.environ.get('NOTION_DATABASE_ID', '')
 
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DB_PATH, timeout=30)
         conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA busy_timeout=30000')
         rows = conn.execute(
             "SELECT klucz, wartosc FROM config WHERE klucz IN ('notion_token','notion_database_id')"
         ).fetchall()
@@ -130,8 +131,9 @@ def _table(rows):
 # ---------- dane z bazy ----------
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA busy_timeout=30000')
     return conn
 
 

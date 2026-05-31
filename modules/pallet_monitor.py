@@ -844,14 +844,16 @@ def run_monitor(source='all', notify=True):
     total_scraped = 0
     _scan_start = time.time()
 
+    # === FAZA 1: SCRAPING (HTTP) — POZA TRANSAKCJA ===
+    # Najpierw zbierz WSZYSTKIE dane sieciowe do pamieci. Dawniej (source='all')
+    # zapis Warrington otwieral niejawna transakcje (pierwszy INSERT), a potem
+    # scrape_jobalots() robil HTTP (4 sortowania x 3 strony, timeout 25s)
+    # trzymajac write-lock WAL minutami -> inne watki dostawaly 'database is
+    # locked'. Caly HTTP musi sie wykonac PRZED jakimkolwiek zapisem.
     if source in ('warrington', 'all'):
         try:
             all_products, interesting = scrape_warrington(keywords)
             total_scraped += len(all_products)
-            for p in interesting:
-                is_new = _save_deal(conn, p)
-                if is_new:
-                    new_deals.append(p)
             all_interesting.extend(interesting)
         except Exception as e:
             log(f"Warrington monitor error: {e}")
@@ -860,15 +862,23 @@ def run_monitor(source='all', notify=True):
         try:
             all_products, interesting = scrape_jobalots(keywords)
             total_scraped += len(all_products)
-            for p in interesting:
-                is_new = _save_deal(conn, p)
-                if is_new:
-                    new_deals.append(p)
             all_interesting.extend(interesting)
         except Exception as e:
             log(f"Jobalots monitor error: {e}")
 
-    conn.commit()
+    # === FAZA 2: ZAPIS (krotka transakcja, zero HTTP) ===
+    # rollback w except, zeby wyjatek miedzy execute() a commit() nie zostawil
+    # wiszacej transakcji w puli (pooled conn zyje per-watek -> wyciek blokuje
+    # wszystkie zapisy az do restartu).
+    try:
+        for p in all_interesting:
+            is_new = _save_deal(conn, p)
+            if is_new:
+                new_deals.append(p)
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        log(f"Monitor zapis error (rollback): {e}")
 
     # Wyślij powiadomienia Telegram — wszystkie nowe deale (nie low priority)
     if notify and new_deals:

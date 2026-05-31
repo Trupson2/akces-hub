@@ -1215,8 +1215,11 @@ def migrate_reset_fake_data_wystawienia():
 
 
 def maintenance_reindex_if_needed():
-    """REINDEX trzyma exclusive lock na DB — robimy go MAX raz na 7 dni
-    i poza godzinami szczytu. Wolany w background po starcie."""
+    """Lekka konserwacja DB max raz na 7 dni. Uzywa PRAGMA optimize (aktualizacja
+    statystyk query plannera), NIE REINDEX — REINDEX bral EXCLUSIVE lock na cala
+    baze (kilkadziesiat s na Raspberry Pi) i kolidowal z auto-syncem Allegro
+    powodujac 'database is locked'. optimize bierze tylko krotkie locki.
+    Nazwa funkcji zostaje (wolana z app.py)."""
     import time as _time
     try:
         last = get_config('last_reindex_ts', '0')
@@ -1227,10 +1230,12 @@ def maintenance_reindex_if_needed():
         if _time.time() - last_ts < 7 * 86400:
             return  # nie czas jeszcze
         with get_db() as conn:
-            conn.execute("REINDEX")
+            # PRAGMA optimize zamiast REINDEX — patrz docstring (REINDEX bral
+            # EXCLUSIVE lock i walil 'database is locked' w auto-syncu Allegro).
+            conn.execute("PRAGMA optimize")
             conn.commit()
         set_config('last_reindex_ts', str(_time.time()))
-        print("  [OK] REINDEX (raz/7dni) zakonczony")
+        print("  [OK] PRAGMA optimize (raz/7dni) zakonczony")
     except Exception as e:
         print(f"  [WARN] REINDEX: {e}")
 
