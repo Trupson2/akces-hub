@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block page_title %}SKANER{% endblock %}
+{% block content %}
+<style>
+/* ── AMAZON_SCRAPER — styl spójny z OFFER_ENGINE dashboard ── */
+.oe-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px;flex-wrap:wrap}
+.oe-header-left{display:flex;flex-direction:column;gap:10px}
+.oe-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,5vw,3rem);font-weight:900;color:#f9f5f8;letter-spacing:-0.04em;text-transform:uppercase;margin:0;line-height:0.9}
+.oe-title-accent{color:#8ff5ff}
+.oe-badges{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.oe-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;font-size:0.62rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;font-family:'Space Grotesk',sans-serif}
+.oe-badge.optimal{background:rgba(190,238,0,0.1);border:1px solid rgba(190,238,0,0.3);color:#beee00}
+.oe-badge.active{background:rgba(143,245,255,0.08);border:1px solid rgba(143,245,255,0.25);color:#8ff5ff}
+.oe-badge-dot{width:7px;height:7px;border-radius:50%;animation:oePulse 2s ease-in-out infinite}
+.oe-badge-dot.green{background:#beee00;box-shadow:0 0 8px rgba(190,238,0,0.5)}
+.oe-badge-dot.cyan{background:#8ff5ff;box-shadow:0 0 8px rgba(143,245,255,0.5)}
+@keyframes oePulse{0%,100%{opacity:1}50%{opacity:0.35}}
+.oe-kpi-stack{display:flex;gap:14px;flex-wrap:wrap}
+.oe-kpi-mini{background:rgba(19,19,21,0.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 22px;min-width:150px;border-left:3px solid transparent}
+.oe-kpi-mini.cyan{border-left-color:#8ff5ff;box-shadow:0 0 20px rgba(143,245,255,0.06)}
+.oe-kpi-mini.pink{border-left-color:#ff6b9b;box-shadow:0 0 20px rgba(255,107,155,0.06)}
+.oe-kpi-mini-label{font-size:0.55rem;font-weight:800;letter-spacing:0.18em;color:#adaaad;text-transform:uppercase;margin-bottom:8px;font-family:'Space Grotesk',sans-serif}
+.oe-kpi-mini-value{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:900;line-height:1}
+.oe-kpi-mini-value.cyan{color:#8ff5ff}.oe-kpi-mini-value.pink{color:#ff6b9b}
+.oe-kpi-mini-sub{font-size:0.6rem;font-weight:700;color:#767577;margin-top:6px;letter-spacing:0.05em}
+/* stats row */
+.oe-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:700px){.oe-stats-row{grid-template-columns:1fr}}
+.oe-stat-card{background:rgba(19,19,21,0.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-left:3px solid transparent;padding:18px 20px}
+.oe-stat-card.cyan{border-left-color:#8ff5ff}.oe-stat-card.lime{border-left-color:#beee00}.oe-stat-card.pink{border-left-color:#ff6b9b}
+.oe-stat-label{font-size:0.55rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#adaaad;font-family:'Space Grotesk',sans-serif;margin-bottom:8px}
+.oe-stat-value{font-family:'Space Grotesk',sans-serif;font-size:1.7rem;font-weight:900;line-height:1}
+/* panels */
+.oe-panel{background:rgba(19,19,21,0.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(72,71,74,0.12);overflow:hidden;margin-bottom:18px}
+.oe-panel-header{padding:16px 22px;border-bottom:1px solid rgba(72,71,74,0.1);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.oe-panel-title{font-family:'Space Grotesk',sans-serif;font-size:0.82rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#f9f5f8;display:flex;align-items:center;gap:8px}
+.oe-panel-title .material-symbols-outlined{font-size:1rem;color:#8ff5ff}
+.oe-panel-title .material-symbols-outlined.amber{color:#f59e0b}
+.oe-panel-body{padding:20px 22px}
+/* form controls */
+.scr-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:560px){.scr-grid2{grid-template-columns:1fr}}
+.scr-group{margin-bottom:14px}
+.scr-label{display:flex;align-items:center;gap:5px;font-size:0.62rem;color:#adaaad;letter-spacing:0.1em;text-transform:uppercase;font-weight:800;font-family:'Space Grotesk',sans-serif;margin-bottom:6px}
+.scr-label .material-symbols-outlined{font-size:0.9rem}
+.scr-input,.scr-select,.scr-textarea{width:100%;padding:11px 13px;background:#131315;border:1px solid rgba(72,71,74,0.3);color:#f9f5f8;font-size:0.82rem;font-family:'Manrope',sans-serif;transition:border-color 0.2s;box-sizing:border-box}
+.scr-input:focus,.scr-select:focus,.scr-textarea:focus{outline:none;border-color:rgba(143,245,255,0.5)}
+.scr-hint{font-size:0.62rem;color:#767577;margin-top:5px}
+.oe-btn-run{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:#8ff5ff;color:#005d63;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.76rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;transition:all 0.2s;box-shadow:0 0 20px rgba(143,245,255,0.3);text-decoration:none}
+.oe-btn-run:hover{box-shadow:0 0 30px rgba(143,245,255,0.5);transform:translateY(-1px)}
+.oe-btn-run .material-symbols-outlined{font-size:1.1rem}
+.oe-btn-ghost{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:rgba(143,245,255,0.1);border:1px solid rgba(143,245,255,0.3);color:#8ff5ff;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.76rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;transition:all 0.2s}
+.oe-btn-ghost:hover{background:rgba(143,245,255,0.16)}
+.oe-btn-amber{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.76rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;transition:all 0.2s}
+.oe-btn-amber:hover{background:rgba(245,158,11,0.22)}
+/* 2-col layout */
+.scr-columns{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:1000px){.scr-columns{grid-template-columns:1fr}}
+/* discovered table */
+.scr-table{width:100%;border-collapse:collapse}
+.scr-table th{font-size:0.55rem;text-transform:uppercase;letter-spacing:1px;color:#767577;padding:10px 8px;text-align:left;border-bottom:1px solid rgba(72,71,74,0.15);font-weight:800;font-family:'Space Grotesk',sans-serif}
+.scr-table td{padding:11px 8px;border-bottom:1px solid rgba(72,71,74,0.06);font-size:0.76rem}
+.scr-table tr:last-child td{border-bottom:none}
+.scr-table tr:hover td{background:rgba(143,245,255,0.03)}
+</style>
+
+<!-- ═══ HEADER ═══ -->
+<div class="oe-header">
+    <div class="oe-header-left">
+        <h2 class="oe-title">AMAZON<span class="oe-title-accent">_SCRAPER</span></h2>
+        <div class="oe-badges">
+            <span class="oe-badge active"><span class="oe-badge-dot cyan"></span> {{ total_produkty }} PRODUKTÓW</span>
+            {% if new_today %}<span class="oe-badge optimal"><span class="oe-badge-dot green"></span> +{{ new_today }} DZIŚ</span>{% endif %}
+        </div>
+    </div>
+    <div class="oe-kpi-stack">
+        <div class="oe-kpi-mini cyan">
+            <div class="oe-kpi-mini-label">ASIN_COVERAGE</div>
+            <div class="oe-kpi-mini-value cyan">{{ asin_pct }}%</div>
+            <div class="oe-kpi-mini-sub">{{ with_asin }}/{{ total_produkty }}</div>
+        </div>
+        <div class="oe-kpi-mini pink">
+            <div class="oe-kpi-mini-label">PHOTO_COVERAGE</div>
+            <div class="oe-kpi-mini-value pink">{{ photo_pct }}%</div>
+            <div class="oe-kpi-mini-sub">{{ with_photo }}/{{ total_produkty }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ STATS ═══ -->
+<div class="oe-stats-row">
+    <div class="oe-stat-card cyan"><div class="oe-stat-label">TOTAL_ITEMS</div><div class="oe-stat-value" style="color:#8ff5ff">{{ total_produkty }}</div></div>
+    <div class="oe-stat-card lime"><div class="oe-stat-label">NOWE_7D</div><div class="oe-stat-value" style="color:#beee00">+{{ new_week }}</div></div>
+    <div class="oe-stat-card pink"><div class="oe-stat-label">PALETY</div><div class="oe-stat-value">{{ total_palety }}</div></div>
+</div>
+
+<div class="scr-columns">
+    <!-- ═══ LEWA: formularze ═══ -->
+    <div>
+        <!-- SCRAPE PO ASIN -->
+        <div class="oe-panel">
+            <div class="oe-panel-header"><div class="oe-panel-title"><span class="material-symbols-outlined">search</span> ASIN_SCAN</div></div>
+            <div class="oe-panel-body">
+                <form action="/paletomat/scraper/asin" method="POST">
+                    <div class="scr-grid2">
+                        <div>
+                            <div class="scr-label"><span class="material-symbols-outlined">inventory_2</span> Paleta</div>
+                            <select name="paleta_id" class="scr-select" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
+                                <option value="">-- Bez palety --</option>
+                                <option value="new">+ Nowa paleta...</option>
+                                {% for p in palety %}<option value="{{ p.id }}"{% if preselect_pid and p.id == preselect_pid %} selected{% endif %}>{{ p.nazwa }} ({{ p.dostawca or 'brak dostawcy' }})</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="scr-label"><span class="material-symbols-outlined">factory</span> Dostawca</div>
+                            <select name="dostawca" class="scr-select">
+                                <option value="">-- Wybierz --</option>
+                                <option>Jobalots</option><option>Warrington</option><option>Miglo</option><option>Inny</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="text" name="nowa_paleta_nazwa" class="scr-input" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:14px">
+                    <div class="scr-group">
+                        <div class="scr-label">ASIN-y (format: ASIN lub ASIN,ilość)</div>
+                        <input type="text" name="asins" class="scr-input" placeholder="B0CFQBBT7G B088ZQ6B64,3 B0ABC12345,2">
+                        <div class="scr-hint">Miglo: ASIN,ilość rozdzielone spacjami</div>
+                    </div>
+                    <div class="scr-grid2">
+                        <div>
+                            <div class="scr-label">Domena Amazon</div>
+                            <select name="domain" class="scr-select">
+                                <option value="de">Amazon.de</option><option value="co.uk">Amazon.co.uk</option><option value="com">Amazon.com</option><option value="pl">Amazon.pl</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="scr-label"><span class="material-symbols-outlined">paid</span> Cena jedn. (opcjonalnie)</div>
+                            <input type="number" step="0.01" name="cena_jednostkowa" class="scr-input" placeholder="np. 25.50">
+                        </div>
+                    </div>
+                    <button type="submit" class="oe-btn-run"><span class="material-symbols-outlined">search</span> SCRAPUJ ASIN-Y</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SCRAPE Z PLIKU -->
+        <div class="oe-panel">
+            <div class="oe-panel-header"><div class="oe-panel-title"><span class="material-symbols-outlined">folder</span> FILE_LOAD <span style="font-size:0.6rem;color:#767577;font-weight:600;letter-spacing:0.05em">JOBALOTS / WARRINGTON</span></div></div>
+            <div class="oe-panel-body">
+                <form action="/paletomat/scraper/file" method="POST" enctype="multipart/form-data">
+                    <div class="scr-grid2">
+                        <div>
+                            <div class="scr-label"><span class="material-symbols-outlined">inventory_2</span> Paleta</div>
+                            <select name="paleta_id" class="scr-select" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
+                                <option value="">-- Bez palety --</option>
+                                <option value="new">+ Nowa paleta...</option>
+                                {% for p in palety %}<option value="{{ p.id }}"{% if preselect_pid and p.id == preselect_pid %} selected{% endif %}>{{ p.nazwa }} ({{ p.dostawca or 'brak dostawcy' }})</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="scr-label"><span class="material-symbols-outlined">factory</span> Dostawca</div>
+                            <select name="dostawca" class="scr-select">
+                                <option value="">-- Wybierz --</option>
+                                <option>Jobalots</option><option>Warrington</option><option>Miglo</option><option>Inny</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="text" name="nowa_paleta_nazwa" class="scr-input" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:14px">
+                    <div class="scr-group">
+                        <div class="scr-label"><span class="material-symbols-outlined">description</span> Plik Excel (.xlsx) lub CSV/TXT</div>
+                        <input type="file" name="file" class="scr-input" accept=".txt,.csv,.xlsx,.xls" required>
+                        <div class="scr-hint">Automatycznie wykrywa: ASIN, cenę, ilość, EAN, zdjęcia</div>
+                    </div>
+                    <div class="scr-group">
+                        <div class="scr-label"><span class="material-symbols-outlined">paid</span> Cena jednostkowa brutto (opcjonalnie)</div>
+                        <input type="number" step="0.01" name="cena_jednostkowa" class="scr-input" placeholder="Nadpisuje cenę z pliku">
+                    </div>
+                    <button type="submit" class="oe-btn-ghost"><span class="material-symbols-outlined">upload</span> WGRAJ I DODAJ DO MAGAZYNU</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- IMPORT MIGLO -->
+        <div class="oe-panel">
+            <div class="oe-panel-header"><div class="oe-panel-title"><span class="material-symbols-outlined amber">list_alt</span> MANUAL_IN <span style="font-size:0.6rem;color:#767577;font-weight:600;letter-spacing:0.05em">MIGLO / licytacje</span></div></div>
+            <div class="oe-panel-body">
+                <form action="/paletomat/scraper/miglo" method="POST">
+                    <div class="scr-grid2">
+                        <div>
+                            <div class="scr-label"><span class="material-symbols-outlined">inventory_2</span> Paleta</div>
+                            <select name="paleta_id" class="scr-select" onchange="this.form.nowa_paleta_nazwa.style.display = this.value === 'new' ? 'block' : 'none'">
+                                <option value="">-- Bez palety --</option>
+                                <option value="new">+ Nowa paleta...</option>
+                                {% for p in palety %}<option value="{{ p.id }}"{% if preselect_pid and p.id == preselect_pid %} selected{% endif %}>{{ p.nazwa }} ({{ p.dostawca or 'brak dostawcy' }})</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="scr-label"><span class="material-symbols-outlined">factory</span> Dostawca</div>
+                            <select name="dostawca" class="scr-select">
+                                <option selected>Miglo</option><option>Jobalots</option><option>Warrington</option><option>Inny</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="text" name="nowa_paleta_nazwa" class="scr-input" placeholder="Nazwa nowej palety" style="display:none;margin-bottom:14px">
+                    <div class="scr-group">
+                        <div class="scr-label">Dane z tabeli Miglo</div>
+                        <textarea name="miglo_data" class="scr-textarea" rows="6" placeholder="B0IL6PLPDI&#9;5&#9;HOME_IMPROVEMENT&#9;1647,56&#9;221,89&#10;B0IN7ENHO6&#9;4&#9;CAMERA&#9;588,45&#9;79,25&#10;..." style="font-family:monospace;font-size:0.78rem"></textarea>
+                        <div class="scr-hint">Skopiuj tabelę z Miglo (ASIN | Ilość | Kategoria | Cena | Cena netto)</div>
+                    </div>
+                    <button type="submit" class="oe-btn-amber"><span class="material-symbols-outlined">download</span> IMPORTUJ Z MIGLO</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ PRAWA: ostatnio dodane ═══ -->
+    <div>
+        <div class="oe-panel">
+            <div class="oe-panel-header">
+                <div class="oe-panel-title"><span class="material-symbols-outlined">database</span> SCRAPED_QUEUED</div>
+                <span style="font-size:0.6rem;color:#767577;letter-spacing:0.1em">OSTATNIO DODANE</span>
+            </div>
+            {% if ostatnio_dodane %}
+            <table class="scr-table">
+                <thead><tr><th>Data</th><th>Produkt</th><th>ASIN</th><th>Ilość</th><th>Stan</th></tr></thead>
+                <tbody>
+                {% for r in ostatnio_dodane %}
+                    <tr>
+                        <td style="color:#64748b;white-space:nowrap">{{ r.data }}</td>
+                        <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">{{ r.nazwa }}</td>
+                        <td style="color:#8ff5ff;font-family:monospace;font-size:0.7rem">{{ r.asin }}</td>
+                        <td style="color:#64748b">{{ r.ilosc }} szt</td>
+                        <td>{% set sc = {'Nowy':'#beee00','Używany':'#eab308','Uszkodzony':'#ef4444'}.get(r.stan,'#8ff5ff') %}<span style="font-size:0.55rem;font-weight:800;color:{{ sc }};background:{{ sc }}18;padding:3px 8px;text-transform:uppercase;letter-spacing:0.5px;font-family:'Space Grotesk',sans-serif">{{ r.stan }}</span></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding:30px;text-align:center;color:#64748b;font-size:0.8rem">Brak produktów w bazie</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
