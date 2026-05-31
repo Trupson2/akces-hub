@@ -838,9 +838,9 @@ def ustawienia_layout_opisu():
                     <span class="material-symbols-outlined" style="color:#8ff5ff">image</span>
                 </div>
                 <div style="flex:1;min-width:200px">
-                    <div style="font-weight:800;color:#8ff5ff;font-size:0.95rem">Max zdjęć w opisie</div>
+                    <div style="font-weight:800;color:#8ff5ff;font-size:0.95rem">Max zdjęć w ofercie</div>
                     <div style="font-size:0.78rem;color:#94a3b8;line-height:1.5;margin-top:4px">
-                        Ile zdjęć produktu wstawić w opisie Allegro (galeria oferty zawsze pokazuje wszystkie). Mniej zdjęć = szybciej się ładuje + krótszy opis.
+                        Ile zdjęć produktu użyć przy wystawianiu — dotyczy <b>galerii oferty, opisu i uploadu</b> (tyle samo wszędzie). Mniej zdjęć = szybsze wystawianie + krótszy opis.
                     </div>
                 </div>
                 <select name="max_img" style="padding:10px 14px;background:#0f1019;border:1px solid #2d3748;border-radius:8px;color:#e2e8f0;font-size:0.95rem;font-weight:700;min-width:120px">

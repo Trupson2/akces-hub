@@ -2698,13 +2698,26 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     # ============================================================
     # ZDJĘCIA - RÓWNOLEGŁY UPLOAD (ThreadPoolExecutor)
     # ============================================================
+    # Max zdjęć (2/4/6/8) — TNIE upload + galerię + opis razem (klient: /ustawienia/layout-opisu).
+    # Czytamy TU, PRZED uploadem, żeby nie wysyłać na Allegro więcej niż trzeba
+    # (mniej zdjęć = szybsze wystawianie). _layout_choice też wczytany tu (używany niżej w opisie).
+    try:
+        from .database import get_config as _gc
+        _layout_choice = (_gc('allegro_opis_layout', 'klasyczny') or 'klasyczny').strip().lower()
+        _max_img_choice = int(_gc('allegro_max_zdjec_opis', '8') or '8')
+    except Exception:
+        _layout_choice = 'klasyczny'
+        _max_img_choice = 8
+    if _max_img_choice not in (2, 4, 6, 8):
+        _max_img_choice = 8
+
     uploaded_images = []
 
     if zdjecia_urls:
 
-        # Przygotuj listę URL do uploadu
+        # Przygotuj listę URL do uploadu (max _max_img_choice — nie uploaduj więcej niż pójdzie do galerii/opisu)
         urls_to_process = []
-        for url in zdjecia_urls[:8]:
+        for url in zdjecia_urls[:_max_img_choice]:
             if url and isinstance(url, str) and url.strip():
                 urls_to_process.append(url.strip())
 
@@ -2744,8 +2757,9 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
             print(f"[PHOT] Images: {len(uploaded_images)} URLs ready for description sections")
 
     # === GALERIA ZDJĘĆ OFERTY (osobne od description sections!) ===
+    # Galeria = tyle samo co upload (już ograniczony do _max_img_choice). Cap defensywnie.
     if uploaded_images:
-        offer_data['images'] = uploaded_images[:16]
+        offer_data['images'] = uploaded_images[:_max_img_choice]
         print(f"[PHOT] Gallery images added to offer: {len(offer_data['images'])}")
 
     # ============================================================
@@ -2754,21 +2768,8 @@ def _create_offer_impl(nazwa, opis, cena, zdjecia_urls=None, kategoria_id=None, 
     # ============================================================
     # BUDOWANIE SEKCJI OPISU - konfigurowalny layout (4 opcje)
     # Klient wybiera w /ustawienia/layout-opisu. Default = 'klasyczny'.
+    # _layout_choice i _max_img_choice JUŻ wczytane wyżej (przed uploadem) — nie czytamy ponownie.
     # ============================================================
-    try:
-        from .database import get_config as _gc
-        _layout_choice = (_gc('allegro_opis_layout', 'klasyczny') or 'klasyczny').strip().lower()
-        # Max zdjec w opisie (2/4/6/8) - klient wybiera w /ustawienia/layout-opisu
-        try:
-            _max_img_choice = int(_gc('allegro_max_zdjec_opis', '8') or '8')
-        except (ValueError, TypeError):
-            _max_img_choice = 8
-        if _max_img_choice not in (2, 4, 6, 8):
-            _max_img_choice = 8
-    except Exception:
-        _layout_choice = 'klasyczny'
-        _max_img_choice = 8
-
     sections = _build_description_sections(
         layout=_layout_choice,
         nazwa=nazwa,
